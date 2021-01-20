@@ -3,5 +3,7 @@ fly2p/.DS_Store
 .DS_Store
 fly2p/sample/.ipynb_checkpoints/*.*
 fly2p/scripts/.ipynb_checkpoints/*.*
+fly2p/preproc/.ipynb_checkpoints/*.*
+fly2p/viz/.ipynb_checkpoints/*.*
 
 fly2p/sample/*.*
