@@ -1,6 +1,6 @@
 # fly2p
 
-Tools for analyzing two-photon (2p) imaging data collected with [vidrio scanimage software](https://vidriotechnologies.com/scanimage/).
+Tools for analyzing two-photon (2p) imaging data collected with [Vidrio Scanimage software](https://vidriotechnologies.com/scanimage/).
 
 ### Organization:
 The fly2p package contains the following submodules:
