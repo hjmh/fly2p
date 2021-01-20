@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "fly2p"
+version = "0.1.0"
+description = "Tools for analyzing 2p (calcium) imaging data collected in flies (or other insects)."
+authors = ["hjmh <hjmhaberkern@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+matplotlib = "^3.3.3"
+topas2numpy = "^0.2.0"
+h5py = "^3.1.0"
+scanimage-tiff-reader = "^1.4.1"
+scikit-image = "^0.18.1"
+
+[tool.poetry.dev-dependencies]
+pandas = "^1.2.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
