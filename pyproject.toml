@@ -12,6 +12,8 @@ topas2numpy = "^0.2.0"
 h5py = "^3.1.0"
 scanimage-tiff-reader = "^1.4.1"
 scikit-image = "^0.18.1"
+napari = "^0.4.3"
+Shapely = "^1.7.1"
 
 [tool.poetry.dev-dependencies]
 pandas = "^1.2.0"
