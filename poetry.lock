@@ -506,7 +506,7 @@ pyparsing = ">=2.0.2"
 name = "pandas"
 version = "1.2.1"
 description = "Powerful data structures for data analysis, time series, and statistics"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7.1"
 
@@ -1054,10 +1054,30 @@ category = "main"
 optional = false
 python-versions = "*"
 
+[[package]]
+name = "xarray"
+version = "0.16.2"
+description = "N-D labeled arrays and datasets in Python"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+numpy = ">=1.15"
+pandas = ">=0.25"
+
+[package.extras]
+accel = ["scipy", "bottleneck", "numbagg"]
+complete = ["netcdf4", "h5netcdf", "scipy", "pydap", "zarr", "fsspec", "cftime", "rasterio", "cfgrib", "bottleneck", "numbagg", "dask", "matplotlib", "seaborn", "nc-time-axis"]
+docs = ["netcdf4", "h5netcdf", "scipy", "pydap", "zarr", "fsspec", "cftime", "rasterio", "cfgrib", "bottleneck", "numbagg", "dask", "matplotlib", "seaborn", "nc-time-axis", "sphinx-autosummary-accessors", "sphinx-rtd-theme", "ipython", "ipykernel", "jupyter-client", "nbsphinx", "scanpydoc"]
+io = ["netcdf4", "h5netcdf", "scipy", "pydap", "zarr", "fsspec", "cftime", "rasterio", "cfgrib"]
+parallel = ["dask"]
+viz = ["matplotlib", "seaborn", "nc-time-axis"]
+
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "3f2f17a5f68537c00018f09cba64ef0cb2828654c31ebf1e35197d975fb0d03e"
+content-hash = "f587a8269b7ba1dd9b3b3b766a17b40b3d8fdd7a8d4df5cfa3c2c50c5c0ab40b"
 
 [metadata.files]
 alabaster = [
@@ -1862,4 +1882,8 @@ wcwidth = [
 ]
 wrapt = [
     {file = "wrapt-1.12.1.tar.gz", hash = "sha256:b62ffa81fb85f4332a4f609cab4ac40709470da05643a082ec1eb88e6d9b97d7"},
+]
+xarray = [
+    {file = "xarray-0.16.2-py3-none-any.whl", hash = "sha256:88d0f80145999443730f87c7575e426d377f0b62677d915f21059cc364b4a1e1"},
+    {file = "xarray-0.16.2.tar.gz", hash = "sha256:38e8439d6c91bcd5b7c0fca349daf8e0643ac68850c987262d53526e9d7d01e4"},
 ]
