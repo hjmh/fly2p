@@ -6,6 +6,8 @@ from os.path import sep
 ### Pure python image processing pipeline
 
 # extract meta data from scan image  tiff file header
+
+#--> old and will be deleted soon <--
 def metadatFromTiff(dataDir, tiffName, minLine = 10):
     lc = 0 #line count
 
@@ -71,7 +73,7 @@ def metadatFromTiff(dataDir, tiffName, minLine = 10):
 
 
 ## Motion correction
-
+#--> old and will be deleted soon <--
 def motionCorrSinglePlane(stackMP, refImg, upsampleFactor, gaussianFiltRef = False):
     
     from skimage.feature import register_translation
