@@ -1,9 +1,9 @@
 import json
 import numpy as np
 
+# Utility functions for working with ScanImage tiff files
 
-# Extracting metadata from ScanImage tiff files
-
+## EXTRACT METADATA ##
 def getSIbasicMetadata(metadat):
     for i, line in enumerate(metadat.split('\n')):
         
