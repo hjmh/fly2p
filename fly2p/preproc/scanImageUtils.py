@@ -1,6 +1,7 @@
 import json
 import numpy as np
 
+
 # Utility functions for working with ScanImage tiff files
 
 ## EXTRACT METADATA ##
@@ -16,7 +17,7 @@ def getSIbasicMetadata(metadat):
 
         # get channel info
         if 'channelSave' in line:
-            print(line)
+            #print(line)
             if not '[' in line:
                 nCh = 1
             else:
@@ -77,3 +78,19 @@ def getSIMetadict(metadat):
     #print(roiGroups.keys())
     #print(json.dumps(roiGroups['imagingRoiGroup']['rois']['UserData'],indent=4))
     return SImetadict
+
+
+
+## LOAD AND RESHAPE IMAGE VOLUME ##
+
+def loadvolume(mytiffreader, basicMetadat, selectCaChan):
+    vol = mytiffreader.data()
+    vol = vol.reshape((int(vol.shape[0]/(basicMetadat['fpv']*basicMetadat['nCh'])),
+                       basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[1], vol.shape[2]))
+    # Full dimensional stack: volumes, planes, channels, xpix, ypix'
+    
+    if (selectCaChan):
+        # Stack reduced to one color channel and flyback frames discrded
+        vol = vol[:,0:basicMetadat['fpv']-basicMetadat['nDiscardFBFrames'],basicMetadat['CaCh'],:,:]
+
+    return vol
