@@ -1,11 +1,56 @@
 from skimage.registration import phase_cross_correlation
 from scipy.ndimage import fourier_shift
+import xarray as xr
+
+from scipy.signal import savgol_filter
+from scipy.ndimage.filters import gaussian_filter
 
 import numpy as np
     
 
 ## DATA CLASS FOR IMAGING DATA
 
+
+
+## CONVERT TO XARRAY
+def stack2xarray(stack, basicMetadat):
+    volcoords = [i/basicMetadat['scanVolumeRate'] for i in range(stack.shape[0])]
+    slices = [i*basicMetadat['stackZStepSize'] for i in range(stack.shape[1])]
+    xpx = np.linspace(0, basicMetadat['xrange_um'], stack.shape[2])
+    ypx = np.linspace(0, basicMetadat['yrange_um'], stack.shape[3])
+
+    imgStack = xr.DataArray(stack, coords = [volcoords, slices, xpx, ypx], 
+                            dims = ['volumes [s]', 'planes [µm]', 'xpix [µm]', 'ypix [µm]'])
+    
+    minval = np.min(imgStack)
+    if minval < 0: imgStack = imgStack - minval
+    
+    return imgStack
+
+
+## DFF ##
+# TODO: Make sure this works with 3D and 4D xarrays (i.e. with and without planes dimension)... 
+def computeDFF(stack3d, order = 3, window = 7, baseLinePercent = 10, offset = 0.0001):
+    dffStack = np.zeros((stack3d.shape)) 
+    stackF0 = np.zeros((stack3d["xpix [µm]"].size,stack3d["ypix [µm]"].size)) 
+
+    filtStack = gaussian_filter(stack3d, sigma=[0,2,2])
+
+    for x in range(stack3d["xpix [µm]"].size):
+        for y in range(stack3d["ypix [µm]"].size):
+
+            filtF = savgol_filter(filtStack[:,x,y], window, order)
+
+            # Estimate baseline
+            F0 = np.percentile(filtF, baseLinePercent)
+            stackF0[x,y] = F0
+            if F0 == 0: F0 += offset
+
+            # Compute dF/F_0 = (F_raw - F_0)/F_0
+            dFF = (filtF - F0) / F0
+
+            dffStack[:,x,y] = dFF
+    return dffStack, stackF0
 
     
 ## MOTION CORRECTION ##
