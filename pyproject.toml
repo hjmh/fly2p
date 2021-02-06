@@ -17,6 +17,7 @@ Shapely = "^1.7.1"
 scipy = "^1.6.0"
 scikit-learn = "^0.24.1"
 xarray = "^0.16.2"
+pandas = "^1.2.1"
 
 [tool.poetry.dev-dependencies]
 pandas = "^1.2.0"

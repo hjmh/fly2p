@@ -100,7 +100,7 @@ six = "*"
 
 [[package]]
 name = "dask"
-version = "2021.1.1"
+version = "2021.2.0"
 description = "Parallel PyData with Task Scheduling"
 category = "main"
 optional = false
@@ -1077,7 +1077,7 @@ viz = ["matplotlib", "seaborn", "nc-time-axis"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "f587a8269b7ba1dd9b3b3b766a17b40b3d8fdd7a8d4df5cfa3c2c50c5c0ab40b"
+content-hash = "9c44a2438dbe6dd53a7148c0d7990e7c56b7d2cc3b2cbff28c38a6e8b3130aca"
 
 [metadata.files]
 alabaster = [
@@ -1159,8 +1159,8 @@ cycler = [
     {file = "cycler-0.10.0.tar.gz", hash = "sha256:cd7b2d1018258d7247a71425e9f26463dfb444d411c39569972f4ce586b0c9d8"},
 ]
 dask = [
-    {file = "dask-2021.1.1-py3-none-any.whl", hash = "sha256:cd98d44bc01071b5ee30262a5bcf40cd55d75df58c36bab79778d7c248b5ce16"},
-    {file = "dask-2021.1.1.tar.gz", hash = "sha256:c5afb690306ce80ba6c57f0b5bc8c44c2bcebffd0cc6b7471ba352e77e90045d"},
+    {file = "dask-2021.2.0-py3-none-any.whl", hash = "sha256:9f5dd9371ba0a3f1ad6525264781d626bdfffa52d072402b93c53e39af90ae39"},
+    {file = "dask-2021.2.0.tar.gz", hash = "sha256:e7054b8d685205e95c789900ae87d6174550180cbe38a3cb1142e10c73004c22"},
 ]
 decorator = [
     {file = "decorator-4.4.2-py2.py3-none-any.whl", hash = "sha256:41fa54c2a0cc4ba648be4fd43cff00aedf5b9465c9bf18d64325bc225f08f760"},
