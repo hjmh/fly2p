@@ -2,10 +2,16 @@ from skimage.registration import phase_cross_correlation
 from scipy.ndimage import fourier_shift
 import xarray as xr
 
+from os.path import sep, exists
+from os import mkdir, makedirs, getcwd
+
+
 from scipy.signal import savgol_filter
 from scipy.ndimage.filters import gaussian_filter
 
 import numpy as np
+import pandas as pd
+import json
 from dataclasses import dataclass, asdict
 
 ## DATA CLASS FOR IMAGING DATA
@@ -15,10 +21,7 @@ class imagingTimeseries:
 
     # metadata
     imgMetadata: dict
-    tiffilename: str
-    brainregion: str
-    genotype: str
-    flyid: str
+    expMetadata: dict
 
     # reference images
     refImage: xr.DataArray # image used for motion correction (MC)
@@ -28,8 +31,31 @@ class imagingTimeseries:
     # roi data
     roitype: str #polygons ("poly") or correlation-based ("corr")?
     roiMask: np.ndarray
-    roiDFF: np.ndarray
-    time: np.ndarray
+    roiDFF: pd.DataFrame
+
+    def saveData(self, saveDir):
+        saveName = self.expMetadata['tiffilename']
+
+        # make directory
+        if not exists(sep.join([saveDir,saveName])):
+            makedirs(sep.join([saveDir,saveName]))
+
+        # save metadata
+        with open(sep.join([saveDir,saveName,'imgMetadata.json']), 'w') as outfile:
+            json.dump(self.imgMetadata, outfile,indent=4)
+        with open(sep.join([saveDir,saveName,'expMetadata.json']), 'w') as outfile:
+            json.dump(self.expMetadata, outfile,indent=4)
+
+        # reference images
+        self.refImg.to_netcdf(sep.join([saveDir,saveName,'refImg.nc']))
+        self.refStackMC.to_netcdf(sep.join([saveDir,saveName,'refStackMC.nc']))
+        self.dffStack.to_netcdf(sep.join([saveDir,saveName,'dffStack.nc']))
+
+        # save roi data
+        self.roiMask.to_csv(sep.join([saveDir,saveName,'roiDFF.csv']))
+        self.roiDFF.to_csv(sep.join([saveDir,saveName,'roiDFF.csv']))
+
+        return sep.join([saveDir,saveName])
 
 # ToDo: make dataclass for holding preprocessed, full imaging data (DFF volume,..)
 
