@@ -34,7 +34,7 @@ class imagingTimeseries:
     roiDFF: pd.DataFrame
 
     def saveData(self, saveDir):
-        saveName = self.expMetadata['tiffilename']
+        saveName = self.expMetadata['tiffilename'][:-4]
 
         # make directory
         if not exists(sep.join([saveDir,saveName])):
@@ -47,12 +47,12 @@ class imagingTimeseries:
             json.dump(self.expMetadata, outfile,indent=4)
 
         # reference images
-        self.refImg.to_netcdf(sep.join([saveDir,saveName,'refImg.nc']))
+        self.refImage.to_netcdf(sep.join([saveDir,saveName,'refImg.nc']))
         self.refStackMC.to_netcdf(sep.join([saveDir,saveName,'refStackMC.nc']))
         self.dffStack.to_netcdf(sep.join([saveDir,saveName,'dffStack.nc']))
 
         # save roi data
-        self.roiMask.to_csv(sep.join([saveDir,saveName,'roiDFF.csv']))
+        pd.DataFrame(self.roiMask).to_csv(sep.join([saveDir,saveName,'roiDFF.csv']))
         self.roiDFF.to_csv(sep.join([saveDir,saveName,'roiDFF.csv']))
 
         return sep.join([saveDir,saveName])
