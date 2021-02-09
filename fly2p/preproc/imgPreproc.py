@@ -33,29 +33,28 @@ class imagingTimeseries:
     roiMask: np.ndarray
     roiDFF: pd.DataFrame
 
-    def saveData(self, saveDir):
-        saveName = self.expMetadata['tiffilename'][:-4]
-
+    def saveData(self, saveDir, saveName):
+        savepath = sep.join([saveDir,saveName, 'img'])
         # make directory
-        if not exists(sep.join([saveDir,saveName])):
-            makedirs(sep.join([saveDir,saveName]))
+        if not exists(savepath):
+            makedirs(savepath)
 
         # save metadata
-        with open(sep.join([saveDir,saveName,'imgMetadata.json']), 'w') as outfile:
+        with open(sep.join([savepath,'imgMetadata.json']), 'w') as outfile:
             json.dump(self.imgMetadata, outfile,indent=4)
-        with open(sep.join([saveDir,saveName,'expMetadata.json']), 'w') as outfile:
+        with open(sep.join([savepath,'expMetadata.json']), 'w') as outfile:
             json.dump(self.expMetadata, outfile,indent=4)
 
         # reference images
-        self.refImage.to_netcdf(sep.join([saveDir,saveName,'refImg.nc']))
-        self.refStackMC.to_netcdf(sep.join([saveDir,saveName,'refStackMC.nc']))
-        self.dffStack.to_netcdf(sep.join([saveDir,saveName,'dffStack.nc']))
+        self.refImage.to_netcdf(sep.join([savepath,'refImg.nc']))
+        self.refStackMC.to_netcdf(sep.join([savepath,'refStackMC.nc']))
+        self.dffStack.to_netcdf(sep.join([savepath,'dffStack.nc']))
 
         # save roi data
-        pd.DataFrame(self.roiMask).to_csv(sep.join([saveDir,saveName,'roiDFF.csv']))
-        self.roiDFF.to_csv(sep.join([saveDir,saveName,'roiDFF.csv']))
+        pd.DataFrame(self.roiMask).to_csv(sep.join([savepath,'roiDFF.csv']))
+        self.roiDFF.to_csv(sep.join([savepath,'roiDFF.csv']))
 
-        return sep.join([saveDir,saveName])
+        return savepath
 
 # ToDo: make dataclass for holding preprocessed, full imaging data (DFF volume,..)
 
