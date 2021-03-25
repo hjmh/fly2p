@@ -5,7 +5,6 @@ import xarray as xr
 from os.path import sep, exists
 from os import mkdir, makedirs, getcwd
 
-
 from scipy.signal import savgol_filter
 from scipy.ndimage.filters import gaussian_filter
 
