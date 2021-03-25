@@ -9,7 +9,27 @@ def myAxisTheme(myax):
     myax.get_yaxis().tick_left()
     myax.spines['top'].set_visible(False)
     myax.spines['right'].set_visible(False)
+
+def plotScaleBar(ax,xlen,pos,labeltext):
+    ax.plot([pos[0],pos[0]+xlen],[pos[1],pos[1]],'k')
+    ax.text(pos[0],pos[1],labeltext)
     
+def minimalAxisTheme(myax, xlen,pos,labeltext):
+    plotScaleBar(myax,xlen,pos,labeltext)
+    myax.axis('off')
+    myax.set_aspect('equal')
+
+def pathPlotAxisTheme(myax, units):
+    myax.spines['top'].set_visible(False)
+    myax.spines['right'].set_visible(False)
+    myax.spines['bottom'].set_visible(False)
+    myax.spines['left'].set_visible(False)
+    myax.get_xaxis().set_ticks([])
+    myax.get_yaxis().set_ticks([])
+    myax.set_aspect('equal')
+    myax.set_xlabel('x [{}]'.format(units))
+    myax.set_ylabel('y [{}]'.format(units))
+
     
     
 ## ROI vizualization
