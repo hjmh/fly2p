@@ -12,17 +12,6 @@ def myxcorr(x,y,lags):
             cc[i] = np.correlate(x[lag:], y[:-lag])
     return cc
 
-def myxcorrCoeff_old(x,y,lags):
-    cc = np.zeros((len(lags)))
-    for i, lag in enumerate(lags):
-        if lag < 0:
-            cc[i] = np.cov(x[:lag], y[-lag:])[0,1]/(np.std(x[:lag])*np.std(y[-lag:]))
-        elif lag == 0:
-            cc[i] = np.cov(x, y)[0,1]/(np.std(x)*np.std(y))
-        else:
-            cc[i] = np.cov(x[lag:], y[:-lag])[0,1]/(np.std(x[lag:])*np.std(y[:-lag]))
-    return cc
-
 def myxcorrCoeff(x,y,lags):
     cc = np.zeros((len(lags)))
     for i, lag in enumerate(lags):
