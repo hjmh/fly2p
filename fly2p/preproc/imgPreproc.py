@@ -13,6 +13,9 @@ import pandas as pd
 import json
 from dataclasses import dataclass, asdict
 
+# ToDo: make dataclass for holding preprocessed, full imaging data (DFF volume,..)
+
+
 ## DATA CLASS FOR IMAGING DATA
 @dataclass
 class imagingTimeseries:
@@ -25,7 +28,8 @@ class imagingTimeseries:
     # reference images
     refImage: xr.DataArray # image used for motion correction (MC)
     refStackMC: xr.DataArray # image or stack, mean flourescense over time after MC
-    dffStack: xr.DataArray # # image or stack, mean DFF over time after MC
+    dffMIP: xr.DataArray # image or stack, maximum intensity projection of DFF over time after MC 
+    F0stack: xr.DataArray # image or stack of F0 (baseline flourescences)
 
     # roi data
     roitype: str #polygons ("poly") or correlation-based ("corr")?
@@ -47,15 +51,45 @@ class imagingTimeseries:
         # reference images
         self.refImage.to_netcdf(sep.join([savepath,'refImg.nc']))
         self.refStackMC.to_netcdf(sep.join([savepath,'refStackMC.nc']))
-        self.dffStack.to_netcdf(sep.join([savepath,'dffStack.nc']))
+        self.dffMIP.to_netcdf(sep.join([savepath,'dffMIP.nc']))
+        self.F0stack.to_netcdf(sep.join([savepath,'F0stack.nc']))
 
         # save roi data
-        pd.DataFrame(self.roiMask).to_csv(sep.join([savepath,'roiDFF.csv']))
+        np.save(sep.join([savepath,'roiMask']),self.roiMask)
         self.roiDFF.to_csv(sep.join([savepath,'roiDFF.csv']))
 
         return savepath
 
-# ToDo: make dataclass for holding preprocessed, full imaging data (DFF volume,..)
+
+# construct imaging timeseries object from saved data files
+def loadImagingTimeseries(path2imgdat):
+    
+    dffMIP_load = xr.open_dataset(path2imgdat+sep+'dffMIP.nc')
+    F0Xarray_load = xr.open_dataset(path2imgdat+sep+'F0stack.nc')
+    refImg_load = xr.open_dataset(path2imgdat+sep+'refImg.nc')
+    refStackMC_load = xr.open_dataset(path2imgdat+sep+'refImg.nc')
+
+    with open(path2imgdat+sep+'imgMetadata.json') as f:
+        basicMetadat_load = json.load(f)
+    with open(path2imgdat+sep+'expMetadata.json') as f:
+        expMetadat_load = json.load(f)
+
+    roiDat_load = pd.read_csv(path2imgdat+sep+'roiDFF.csv')
+    roimask_load = np.load(path2imgdat+sep+'roiMask.npy')
+
+    imgTS = imagingTimeseries(
+        imgMetadata = basicMetadat_load,
+        expMetadata = expMetadat_load,
+        refImage = refImg_load, 
+        refStackMC = refStackMC_load, 
+        dffMIP = dffMIP_load, 
+        F0stack = F0Xarray_load,
+        roitype = expMetadat_load['roitype'],
+        roiMask = roimask_load,
+        roiDFF = roiDat_load
+    )
+    
+    return imgTS
 
 ## CONVERT TO XARRAY
 def stack2xarray(stack, basicMetadat, data4D = True):
@@ -78,6 +112,19 @@ def stack2xarray(stack, basicMetadat, data4D = True):
 
     return imgStack
 
+## CONVERT TO XARRAY when no time dimension
+def refStack2xarray(stack, basicMetadat, data4D = True):
+    if data4D:
+        slices = [i*basicMetadat['stackZStepSize'] for i in range(stack.shape[0])]
+        xpx = np.linspace(0, basicMetadat['xrange_um'], stack.shape[1])
+        ypx = np.linspace(0, basicMetadat['yrange_um'], stack.shape[2])
+        imgStack = xr.DataArray(stack, coords = [slices, xpx, ypx], dims = ['planes [µm]', 'xpix [µm]', 'ypix [µm]'])
+
+    else:
+        xpx = np.linspace(0, basicMetadat['xrange_um'], stack.shape[0])
+        ypx = np.linspace(0, basicMetadat['yrange_um'], stack.shape[1])
+        imgStack = xr.DataArray(stack, coords = [xpx, ypx], dims = ['xpix [µm]', 'ypix [µm]'])
+    return imgStack
 
 ## DFF ##
 # TODO: Make sure this works with 3D and 4D xarrays (i.e. with and without planes dimension)...
