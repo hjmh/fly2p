@@ -13,6 +13,8 @@ import pandas as pd
 import json
 from dataclasses import dataclass, asdict
 
+from matplotlib import pyplot as plt
+
 # ToDo: make dataclass for holding preprocessed, full imaging data (DFF volume,..)
 
 
@@ -153,7 +155,7 @@ def computeDFF(stack3d, order = 3, window = 7, baseLinePercent = 10, offset = 0.
 
 ## MOTION CORRECTION ##
 
-def motionCorrection(stack, refImage, upsampleFactor, sigmaval):
+def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False):
     from scipy.ndimage.filters import gaussian_filter
 
     refImgFilt = gaussian_filter(refImage, sigma=sigmaval)
@@ -162,8 +164,7 @@ def motionCorrection(stack, refImage, upsampleFactor, sigmaval):
     error = np.zeros(stack['volumes [s]'].size)
     diffphase = np.zeros(stack['volumes [s]'].size)
 
-    stackMC = stack.copy()#np.ones(stackMP.shape).astype('int16')
-
+    # compute shift
     for i in range(stack['volumes [s]'].size):
         shifImg = stack[i,:,:]
 
@@ -172,11 +173,42 @@ def motionCorrection(stack, refImage, upsampleFactor, sigmaval):
         # subpixel precision
         shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, shifImgFilt,
                                                                      upsample_factor = upsampleFactor)
+    if showShiftFig:
+        fig, ax = plt.subplots(1,1,figsize=(15,5))
+        ax.plot(shift[0,:])
+        ax.plot(shift[1,:])
+        ax.set_xlabel('frames')
+        ax.set_ylabel('image shift')
+    
+    if doFilter:
+        shiftFilt_x = shift[0,:].copy()
+        shiftFilt_y = shift[1,:].copy()
+        shiftFilt_x[abs(shiftFilt_x) > stdFactor*np.std(shiftFilt_x)] = np.nan
+        shiftFilt_y[abs(shiftFilt_y) > stdFactor*np.std(shiftFilt_y)] = np.nan
 
+        allT = np.arange(len(shiftFilt_x))
+        shiftFilt_x_interp = np.interp(allT, allT[~np.isnan(shiftFilt_x)], shiftFilt_x[~np.isnan(shiftFilt_x)])
+        shiftFilt_y_interp = np.interp(allT, allT[~np.isnan(shiftFilt_y)], shiftFilt_y[~np.isnan(shiftFilt_y)])
+    
+        if showShiftFig:
+            ax.plot(shiftFilt_x_interp,'b')
+            ax.plot(shiftFilt_y_interp,'c')
+        
+        return np.vstack((shiftFilt_x_interp,shiftFilt_y_interp))
+    else:
+        return shift
+    
+
+def motionCorrection(stack, shift):
+    stackMC = stack.copy()#np.ones(stackMP.shape).astype('int16')
+
+    # shift stack according to shift
+    for i in range(stack['volumes [s]'].size):
+        shifImg = stack[i,:,:]
         offset_image = fourier_shift(np.fft.fftn(shifImg), shift[:,i])
         stackMC[i,:,:] = np.fft.ifftn(offset_image).real.astype('uint16')
-
-    return stackMC, shift
+        
+    return stackMC
 
 
 def applyShiftTo4Dstack(stack4d, shift):
