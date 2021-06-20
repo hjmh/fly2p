@@ -129,27 +129,41 @@ def refStack2xarray(stack, basicMetadat, data4D = True):
     return imgStack
 
 ## DFF ##
-# TODO: Make sure this works with 3D and 4D xarrays (i.e. with and without planes dimension)...
-def computeDFF(stack3d, order = 3, window = 7, baseLinePercent = 10, offset = 0.0001):
-    dffStack = np.zeros((stack3d.shape))
-    stackF0 = np.zeros((stack3d["xpix [µm]"].size,stack3d["ypix [µm]"].size))
+def computeDFF(stack, order = 3, window = 7, baseLinePercent = 10, offset = 0.0001):
+    dffStack = np.zeros((stack.shape))
+    
+    if len(stack.shape) == 3:
+        print('processing 3d stack')
+        stackF0 = np.zeros((stack["xpix [µm]"].size,stack["ypix [µm]"].size))
+        filtStack = gaussian_filter(stack, sigma=[0,2,2])
+        
+        filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
 
-    filtStack = gaussian_filter(stack3d, sigma=[0,2,2])
+        # Estimate baseline
+        stackF0 = np.percentile(filtF, baseLinePercent, axis=0) + offset
+        stackF0[np.where(stackF0 == 0)[0]] += offset
 
-    for x in range(stack3d["xpix [µm]"].size):
-        for y in range(stack3d["ypix [µm]"].size):
+        # Compute dF/F_0 = (F_raw - F_0)/F_0
+        dffStack = (filtF - stackF0) / stackF0
 
-            filtF = savgol_filter(filtStack[:,x,y], window, order)
+    else:
+        print('processing 4d stack')
+        stackF0 = np.zeros((stack["planes [µm]"].size, stack["xpix [µm]"].size, 
+                            stack["ypix [µm]"].size)) 
+        
+        for p in range(stack["planes [µm]"].size):
+            filtStack = gaussian_filter(stack[{'planes [µm]': p}].squeeze(), sigma=[0,2,2])
+
+            filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
 
             # Estimate baseline
-            F0 = np.percentile(filtF, baseLinePercent)
-            stackF0[x,y] = F0
-            if F0 == 0: F0 += offset
+            stackF0[p,:,:] = np.percentile(filtF, baseLinePercent, axis=0) + offset
+            stackF0[p,np.where(stackF0[p,:,:] == 0)[0]] += offset
 
             # Compute dF/F_0 = (F_raw - F_0)/F_0
-            dFF = (filtF - F0) / F0
+            dffStack[:,p,:,:] = (filtF - stackF0[p,:,:]) / stackF0[p,:,:]
+        
 
-            dffStack[:,x,y] = dFF
     return dffStack, stackF0
 
 
