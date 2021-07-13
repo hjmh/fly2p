@@ -162,10 +162,8 @@ def computeDFF(stack, order = 3, window = 7, baseLinePercent = 10, offset = 0.00
 
             # Compute dF/F_0 = (F_raw - F_0)/F_0
             dffStack[:,p,:,:] = (filtF - stackF0[p,:,:]) / stackF0[p,:,:]
-        
 
     return dffStack, stackF0
-
 
 ## MOTION CORRECTION ##
 
