@@ -30,7 +30,7 @@ class imagingTimeseries:
     # reference images
     refImage: xr.DataArray # image used for motion correction (MC)
     refStackMC: xr.DataArray # image or stack, mean flourescense over time after MC
-    dffMIP: xr.DataArray # image or stack, maximum intensity projection of DFF over time after MC 
+    dffMIP: xr.DataArray # image or stack, maximum intensity projection of DFF over time after MC
     F0stack: xr.DataArray # image or stack of F0 (baseline flourescences)
 
     # roi data
@@ -65,7 +65,7 @@ class imagingTimeseries:
 
 # construct imaging timeseries object from saved data files
 def loadImagingTimeseries(path2imgdat):
-    
+
     dffMIP_load = xr.open_dataset(path2imgdat+sep+'dffMIP.nc')
     F0Xarray_load = xr.open_dataset(path2imgdat+sep+'F0stack.nc')
     refImg_load = xr.open_dataset(path2imgdat+sep+'refImg.nc')
@@ -82,15 +82,15 @@ def loadImagingTimeseries(path2imgdat):
     imgTS = imagingTimeseries(
         imgMetadata = basicMetadat_load,
         expMetadata = expMetadat_load,
-        refImage = refImg_load, 
-        refStackMC = refStackMC_load, 
-        dffMIP = dffMIP_load, 
+        refImage = refImg_load,
+        refStackMC = refStackMC_load,
+        dffMIP = dffMIP_load,
         F0stack = F0Xarray_load,
         roitype = expMetadat_load['roitype'],
         roiMask = roimask_load,
         roiDFF = roiDat_load
     )
-    
+
     return imgTS
 
 ## CONVERT TO XARRAY
@@ -121,7 +121,6 @@ def refStack2xarray(stack, basicMetadat, data4D = True):
         xpx = np.linspace(0, basicMetadat['xrange_um'], stack.shape[1])
         ypx = np.linspace(0, basicMetadat['yrange_um'], stack.shape[2])
         imgStack = xr.DataArray(stack, coords = [slices, xpx, ypx], dims = ['planes [µm]', 'xpix [µm]', 'ypix [µm]'])
-
     else:
         xpx = np.linspace(0, basicMetadat['xrange_um'], stack.shape[0])
         ypx = np.linspace(0, basicMetadat['yrange_um'], stack.shape[1])
@@ -131,12 +130,12 @@ def refStack2xarray(stack, basicMetadat, data4D = True):
 ## DFF ##
 def computeDFF(stack, order = 3, window = 7, baseLinePercent = 10, offset = 0.0001):
     dffStack = np.zeros((stack.shape))
-    
+
     if len(stack.shape) == 3:
         print('processing 3d stack')
         stackF0 = np.zeros((stack["xpix [µm]"].size,stack["ypix [µm]"].size))
         filtStack = gaussian_filter(stack, sigma=[0,2,2])
-        
+
         filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
 
         # Estimate baseline
@@ -148,9 +147,9 @@ def computeDFF(stack, order = 3, window = 7, baseLinePercent = 10, offset = 0.00
 
     else:
         print('processing 4d stack')
-        stackF0 = np.zeros((stack["planes [µm]"].size, stack["xpix [µm]"].size, 
-                            stack["ypix [µm]"].size)) 
-        
+        stackF0 = np.zeros((stack["planes [µm]"].size, stack["xpix [µm]"].size,
+                            stack["ypix [µm]"].size))
+
         for p in range(stack["planes [µm]"].size):
             filtStack = gaussian_filter(stack[{'planes [µm]': p}].squeeze(), sigma=[0,2,2])
 
@@ -191,7 +190,7 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
         ax.plot(shift[1,:])
         ax.set_xlabel('frames')
         ax.set_ylabel('image shift')
-    
+
     if doFilter:
         shiftFilt_x = shift[0,:].copy()
         shiftFilt_y = shift[1,:].copy()
@@ -201,15 +200,15 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
         allT = np.arange(len(shiftFilt_x))
         shiftFilt_x_interp = np.interp(allT, allT[~np.isnan(shiftFilt_x)], shiftFilt_x[~np.isnan(shiftFilt_x)])
         shiftFilt_y_interp = np.interp(allT, allT[~np.isnan(shiftFilt_y)], shiftFilt_y[~np.isnan(shiftFilt_y)])
-    
+
         if showShiftFig:
             ax.plot(shiftFilt_x_interp,'b')
             ax.plot(shiftFilt_y_interp,'c')
-        
+
         return np.vstack((shiftFilt_x_interp,shiftFilt_y_interp))
     else:
         return shift
-    
+
 
 def motionCorrection(stack, shift):
     stackMC = stack.copy()#np.ones(stackMP.shape).astype('int16')
@@ -219,7 +218,7 @@ def motionCorrection(stack, shift):
         shifImg = stack[i,:,:]
         offset_image = fourier_shift(np.fft.fftn(shifImg), shift[:,i])
         stackMC[i,:,:] = np.fft.ifftn(offset_image).real.astype('uint16')
-        
+
     return stackMC
 
 
