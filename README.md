@@ -1,3 +1,5 @@
+[roiMap-dFFtimeseries_SS96-x-7f-f02-4-6d_EB_f02_panC1_trial01.pdf](https://github.com/hjmh/fly2p/files/6844490/roiMap-dFFtimeseries_SS96-x-7f-f02-4-6d_EB_f02_panC1_trial01.pdf)
+
 # fly2p
 
 Tools for analyzing two-photon (2p) imaging data collected with [Vidrio Scanimage software](https://vidriotechnologies.com/scanimage/) and [micromanger](https://micro-manager.org/). Loading scanimage data relies on [scanimageReader](https://pypi.org/project/scanimage-tiff-reader/), which can be installed via 'pip install scanimage-tiff-reader'. Other dependencies are tracked using poetry.
