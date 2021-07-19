@@ -1,4 +1,4 @@
-[roiMap-dFFtimeseries_SS96-x-7f-f02-4-6d_EB_f02_panC1_trial01.pdf](https://github.com/hjmh/fly2p/files/6844490/roiMap-dFFtimeseries_SS96-x-7f-f02-4-6d_EB_f02_panC1_trial01.pdf)
+![Screen Shot 2021-07-19 at 7 59 10 PM](https://user-images.githubusercontent.com/10639803/126242184-65bc84c4-3fa2-4034-be51-3e8c2e4d9f8c.png)
 
 # fly2p
 
