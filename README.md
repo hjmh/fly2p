@@ -1,8 +1,6 @@
 # fly2p
 
-Tools for analyzing two-photon (2p) imaging data collected with [Vidrio Scanimage software](https://vidriotechnologies.com/scanimage/). Relies on [scanimageReader](https://pypi.org/project/scanimage-tiff-reader/), which can be installed via 'pip install scanimage-tiff-reader'. Other dependencies are tracked using poetry.
-
-I'm also working on expanding this codebased to work with imaging data collected with micromanger. 
+Tools for analyzing two-photon (2p) imaging data collected with [Vidrio Scanimage software](https://vidriotechnologies.com/scanimage/) and [micromanger](https://micro-manager.org/). Loading scanimage data relies on [scanimageReader](https://pypi.org/project/scanimage-tiff-reader/), which can be installed via 'pip install scanimage-tiff-reader'. Other dependencies are tracked using poetry.
 
 ### Organization:
 The fly2p package contains the following submodules:
