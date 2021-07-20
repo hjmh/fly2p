@@ -1,3 +1,5 @@
+<img src="https://user-images.githubusercontent.com/10639803/126242184-65bc84c4-3fa2-4034-be51-3e8c2e4d9f8c.png" align="middle" width="3000"/>
+
 # fly2p
 
 Tools for analyzing two-photon (2p) imaging data collected with [Vidrio Scanimage software](https://vidriotechnologies.com/scanimage/) and [micromanger](https://micro-manager.org/). Loading scanimage data relies on [scanimageReader](https://pypi.org/project/scanimage-tiff-reader/), which can be installed via 'pip install scanimage-tiff-reader'. Other dependencies are tracked using poetry.
@@ -8,11 +10,6 @@ The fly2p package contains the following submodules:
 * **viz**: A collection of utility functions related to plotting flourescence traces and images.
 
 In addition, the **scripts** folder contains notebooks that illustrate how to use functions in this module based on example files in **sample** (sample files are not currently pushed to repo).
-
-
-![Screen Shot 2021-07-19 at 7 59 10 PM](https://user-images.githubusercontent.com/10639803/126242184-65bc84c4-3fa2-4034-be51-3e8c2e4d9f8c.png)
-
-
 
 ### Install:
 I recommend using poetry to setup a custom conda environment. A helpful introduction can be found [here](https://ealizadeh.com/blog/guide-to-python-env-pkg-dependency-using-conda-poetry).
