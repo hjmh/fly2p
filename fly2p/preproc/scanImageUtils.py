@@ -42,7 +42,7 @@ def getSIbasicMetadata(metadat):
             nVols = int(line.split('=')[-1].strip())
 
         if 'hStackManager.stackZStepSize' in line:
-            stackZStepSize = int(line.split('=')[-1].strip())
+            stackZStepSize = float(line.split('=')[-1].strip())
 
         if 'hRoiManager.scanVolumeRate' in line:
             scanVolumeRate = float(line.split('=')[-1].strip())
