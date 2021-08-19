@@ -30,7 +30,7 @@ class imagingTimeseries:
     # reference images
     refImage: xr.DataArray # image used for motion correction (MC)
     refStackMC: xr.DataArray # image or stack, mean flourescense over time after MC
-    dffMIP: xr.DataArray # image or stack, maximum intensity projection of DFF over time after MC
+    dffStack: xr.DataArray # image or stack, maximum intensity projection of DFF over time after MC
     F0stack: xr.DataArray # image or stack of F0 (baseline flourescences)
 
     # roi data
@@ -51,10 +51,10 @@ class imagingTimeseries:
             json.dump(self.expMetadata, outfile,indent=4)
 
         # reference images
-        self.refImage.to_netcdf(sep.join([savepath,'refImg.nc']))
-        self.refStackMC.to_netcdf(sep.join([savepath,'refStackMC.nc']))
-        self.dffMIP.to_netcdf(sep.join([savepath,'dffMIP.nc']))
-        self.F0stack.to_netcdf(sep.join([savepath,'F0stack.nc']))
+        self.refImage.to_netcdf(sep.join([savepath,'refImg.nc']), mode='w')
+        self.refStackMC.to_netcdf(sep.join([savepath,'refStackMC.nc']), mode='w')
+        self.dffStack.to_netcdf(sep.join([savepath,'dffStack.nc']), mode='w')
+        self.F0stack.to_netcdf(sep.join([savepath,'F0stack.nc']), mode='w')
 
         # save roi data
         np.save(sep.join([savepath,'roiMask']),self.roiMask)
@@ -66,10 +66,10 @@ class imagingTimeseries:
 # construct imaging timeseries object from saved data files
 def loadImagingTimeseries(path2imgdat):
 
-    dffMIP_load = xr.open_dataset(path2imgdat+sep+'dffMIP.nc')
-    F0Xarray_load = xr.open_dataset(path2imgdat+sep+'F0stack.nc')
-    refImg_load = xr.open_dataset(path2imgdat+sep+'refImg.nc')
-    refStackMC_load = xr.open_dataset(path2imgdat+sep+'refImg.nc')
+    dffStack_load = xr.open_dataarray(path2imgdat+sep+'dffStack.nc', decode_coords='coordinates')
+    F0Xarray_load = xr.open_dataarray(path2imgdat+sep+'F0stack.nc', decode_coords='coordinates')
+    refImg_load = xr.open_dataarray(path2imgdat+sep+'refImg.nc', decode_coords='coordinates')
+    refStackMC_load = xr.open_dataarray(path2imgdat+sep+'refImg.nc', decode_coords='coordinates')
 
     with open(path2imgdat+sep+'imgMetadata.json') as f:
         basicMetadat_load = json.load(f)
@@ -84,7 +84,7 @@ def loadImagingTimeseries(path2imgdat):
         expMetadata = expMetadat_load,
         refImage = refImg_load,
         refStackMC = refStackMC_load,
-        dffMIP = dffMIP_load,
+        dffStack = dffStack_load,
         F0stack = F0Xarray_load,
         roitype = expMetadat_load['roitype'],
         roiMask = roimask_load,
