@@ -128,13 +128,29 @@ def refStack2xarray(stack, basicMetadat, data4D = True):
     return imgStack
 
 ## DFF ##
-def computeDFF(stack, order = 3, window = 7, baseLinePercent = 10, offset = 0.0001):
+def computeDFF(stack,
+               order = 3,
+               window = 7,
+               baseLinePercent = 10,
+               offset = 0.0001,
+               subtract = False,
+               background_mask = None):
+    #if subtract == True and a background_mask is provided, ROI based subtraction is assumed
+
     dffStack = np.zeros((stack.shape))
 
     if len(stack.shape) == 3:
         print('processing 3d stack')
         stackF0 = np.zeros((stack["xpix [µm]"].size,stack["ypix [µm]"].size))
         filtStack = gaussian_filter(stack, sigma=[0,2,2])
+
+        #background estimation
+        if subtract:
+            if background_mask is not None:
+                filtStack = xr.apply_ufunc(roi_subtract,filtStack,
+                                           kwargs={"background_mask":background_mask})
+            else:
+                filtStack = xr.apply_ufunc(roll_ball,filtStack)
 
         filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
 
@@ -163,6 +179,52 @@ def computeDFF(stack, order = 3, window = 7, baseLinePercent = 10, offset = 0.00
             dffStack[:,p,:,:] = (filtF - stackF0[p,:,:]) / stackF0[p,:,:]
 
     return dffStack, stackF0
+
+
+### functions for background subtraction
+# Method 1: Background is manually drawn
+def roi_subtract(stack, background_mask):
+
+    T = stack.shape[0]
+
+    #get mean value of fluorescence inside the background region
+    back_F = [np.nanmean(np.where(background_mask, stack[t,:,:],
+                                  float('nan'))) for t in range(T)]
+
+    #assumption: background is homogeneous
+    #the best estimate of background fluorescence in the image is the mean of the fluorescence
+    #in the background region
+
+    #subtract
+    filt = np.array([stack[t,:,:]-back_F[t] for t in range(T)])
+
+    #range should be same as before subtraction and convert to integer values
+    filt = np.round(((filt-filt.min())/
+                     (filt.max()-filt.min())*(stack.max()-stack.min()))+stack.min())
+
+    return filt
+
+# Method 2: Rolling ball subtraction
+def roll_ball(stack,radius=0.15):
+    #slower than ROI based subtraction
+
+    r = stack.shape[1]*radius
+    R = r/np.max(stack) #normalised radius
+
+    #larger radius fraction implies less artefacts but slower processing
+    ker = restoration.ellipsoid_kernel((1, 2*r, 2*r), 2*R)
+
+    #estimate background for each static image
+    background = restoration.rolling_ball(stack,kernel=ker)
+
+    #subtract
+    filt = stack-background
+
+    #range should be same as before subtraction and convert to integer values
+    filt = np.round(((filt-filt.min())/
+                     (filt.max()-filt.min())*(stack.max()-stack.min()))+stack.min())
+
+    return filt
 
 ## MOTION CORRECTION ##
 
