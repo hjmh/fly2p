@@ -183,14 +183,13 @@ def computeDFF(stack,
 
 ### functions for background subtraction
 # Method 1: Background is manually drawn
-def roi_subtract(stack, background_mask):
-
+def roi_subtract(stack, background_mask, order = 3,window = 7):
     T = stack.shape[0]
 
     #get mean value of fluorescence inside the background region
     back_F = [np.nanmean(np.where(background_mask, stack[t,:,:],
                                   float('nan'))) for t in range(T)]
-
+    back_F = savgol_filter(np.asarray(back_F).astype('float'), window, order)
     #assumption: background is homogeneous
     #the best estimate of background fluorescence in the image is the mean of the fluorescence
     #in the background region
