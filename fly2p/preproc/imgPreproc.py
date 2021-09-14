@@ -69,7 +69,7 @@ def loadImagingTimeseries(path2imgdat):
     dffStack_load = xr.open_dataarray(path2imgdat+sep+'dffStack.nc', decode_coords='coordinates')
     F0Xarray_load = xr.open_dataarray(path2imgdat+sep+'F0stack.nc', decode_coords='coordinates')
     refImg_load = xr.open_dataarray(path2imgdat+sep+'refImg.nc', decode_coords='coordinates')
-    refStackMC_load = xr.open_dataarray(path2imgdat+sep+'refImg.nc', decode_coords='coordinates')
+    refStackMC_load = xr.open_dataarray(path2imgdat+sep+'refStackMC.nc', decode_coords='coordinates')
 
     with open(path2imgdat+sep+'imgMetadata.json') as f:
         basicMetadat_load = json.load(f)
@@ -134,7 +134,8 @@ def computeDFF(stack,
                baseLinePercent = 10,
                offset = 0.0001,
                subtract = False,
-               background_mask = None):
+               background_mask = None,
+               baselineLowestMean = False):
     #if subtract == True and a background_mask is provided, ROI based subtraction is assumed
 
     dffStack = np.zeros((stack.shape))
@@ -155,7 +156,17 @@ def computeDFF(stack,
         filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
 
         # Estimate baseline
-        stackF0 = np.percentile(filtF, baseLinePercent, axis=0) + offset
+        if baselineLowestMean:
+            # TODO: replace with masked asarray
+            # data = np.random.randint(0, 255, (100,100,100))
+            # thr = np.percentile(data, 10)
+            # masked = np.ma.masked_array(data, mask=data>thr)
+            # result = masked.mean(axis=0)
+            for x in range(stack["xpix [µm]"].size):
+                for y in range(stack["ypix [µm]"].size):
+                    stackF0[x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseLinePercent, axis=0),x,y].mean()
+        else:
+            stackF0 = np.percentile(filtF, baseLinePercent, axis=0) + offset
         stackF0[np.where(stackF0 == 0)[0]] += offset
 
         # Compute dF/F_0 = (F_raw - F_0)/F_0
@@ -172,7 +183,12 @@ def computeDFF(stack,
             filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
 
             # Estimate baseline
-            stackF0[p,:,:] = np.percentile(filtF, baseLinePercent, axis=0) + offset
+            if baselineLowestMean:
+                for x in range(stack["xpix [µm]"].size):
+                    for y in range(stack["ypix [µm]"].size):
+                        stackF0[p,:,x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseLinePercent, axis=0),x,y].mean()
+            else:
+                stackF0[p,:,:] = np.percentile(filtF, baseLinePercent, axis=0) + offset
             stackF0[p,np.where(stackF0[p,:,:] == 0)[0]] += offset
 
             # Compute dF/F_0 = (F_raw - F_0)/F_0
