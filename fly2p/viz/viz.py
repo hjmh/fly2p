@@ -60,3 +60,42 @@ def plotEllipse(ax, ctr, longax, shortax, ellipseRot,col, alphaval):
     ellipsepatch = ppatch.Ellipse(ctr, longax, shortax, -ellipseRot, alpha=alphaval, color=col)
     ax.add_patch(ellipsepatch)
     return ax
+
+
+## EB specific
+### Show position of shapely ROIs
+def plotEBshapelyROIs(refEBimg, ebcenter, EBaxisL, EBaxisS, ellipseRot, EBoutline, EBroiPts, EBroiPolys):
+    from fly2p.viz.viz import myAxisTheme, plotShapelyLine, plotEllipse
+    from shapely.geometry.polygon import Polygon
+
+    fig, axs = plt.subplots(1,3, figsize=(15,5))
+
+    for ax in axs:
+        ax.imshow(refEBimg,cmap='Greys_r', origin='lower')
+        ax.axis('off');
+
+    axs[0].plot(ebcenter[0],ebcenter[1], 'ro')
+    axs[0] = plotShapelyLine(axs[0], EBaxisL, 'Long axis', 'orange')
+    axs[0] = plotShapelyLine(axs[0], EBaxisS, 'Short axis', 'tomato')
+
+    axs[1] = plotEllipse(axs[1], ebcenter, EBaxisL.length, EBaxisS.length, ellipseRot
+                         ,'turquoise', 0.4)
+    axs[1] = plotShapelyLine(axs[1], EBaxisL, 'Axis 1', 'coral')
+    axs[1] = plotShapelyLine(axs[1], EBaxisS, 'Axis 2', 'orangered')
+    axs[1] = plotShapelyLine(axs[1], EBoutline, '', 'crimson')
+
+    for s in range(len(EBroiPts)-1):
+        axs[1].plot(EBroiPts[s+1][0],EBroiPts[s+1][1], 'wo')
+        axs[1].text(EBroiPts[s+1][0]+2,EBroiPts[s+1][1]+1, str(s+1), color='w')
+    axs[1].plot(ebcenter[0],ebcenter[1],'wo')
+
+    axs[2].plot(EBoutline.coords.xy[0],EBoutline.coords.xy[1], color='crimson')
+    for s in range(len(EBroiPts)-1):
+        roiPatch = ppatch.Polygon(EBroiPolys[s],alpha=0.5, edgecolor='turquoise', facecolor='teal')
+        axs[2].add_patch(roiPatch)
+        labcoord = Polygon(EBroiPolys[s]).centroid.coords.xy
+        axs[2].text(labcoord[0][0],labcoord[1][0], str(s+1), color='w')
+        axs[2].plot(EBroiPts[s+1][0],EBroiPts[s+1][1], 'w.')
+    axs[2].plot(EBroiPts[0][0],EBroiPts[0][1], 'w.')
+
+    return fig
