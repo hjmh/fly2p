@@ -19,7 +19,7 @@ I recommend using poetry to setup a custom conda environment. A helpful introduc
 2. Create conda environment:  
  `conda create --name unityvr python=3.8`
 4. Activate environment:  
- `conda activate unityvr`
+ `conda activate fly2p`
 6. Make sure you are in the top folder of the cloned repo, then install dependencies:  
  `poetry install`
 8. Setup the new environment as an ipython kernel:  
