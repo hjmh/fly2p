@@ -17,7 +17,7 @@ I recommend using poetry to setup a custom conda environment. A helpful introduc
 0. Clone repo, navigate into folder
 1. If you don't already have poetry, [install poetry](https://python-poetry.org/docs/#installation). You may need to close command window and open a new one.
 2. Create conda environment:  
- `conda create --name unityvr python=3.8`
+ `conda create --name fly2p python=3.8`
 4. Activate environment:  
  `conda activate fly2p`
 6. Make sure you are in the top folder of the cloned repo, then install dependencies:  
@@ -25,6 +25,6 @@ I recommend using poetry to setup a custom conda environment. A helpful introduc
 8. Setup the new environment as an ipython kernel:  
     `conda install -c anaconda ipykernel`  
     then  
-    `python -m ipykernel install --user --name=unityvr`
+    `python -m ipykernel install --user --name=fly2p`
     
 Now you should be able to run the example notebooks in the **scripts** folder without problems.
