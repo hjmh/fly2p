@@ -29,12 +29,13 @@ def getBasicMetadata(path2meta):
     return metadict
 
 ## LOAD AND RESHAPE IMAGE VOLUME ##
-def loadvolume(path2tif, basicMetadat, selectCaChan=False):
+def loadvolume(path2tif, basicMetadat=None, selectCaChan=False):
     # read the image stack
     vol = io.imread(path2tif)
-    vol = vol.reshape((int(vol.shape[0]/(basicMetadat['fpv']*basicMetadat['nCh'])),
-                       basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[1], vol.shape[2]))
-    # Full dimensional stack: volumes, planes, channels, xpix, ypix'
+    if basicMetadat!=None:
+        vol = vol.reshape((int(vol.shape[0]/(basicMetadat['fpv']*basicMetadat['nCh'])),
+                           basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[1], vol.shape[2]))
+        # Full dimensional stack: volumes, planes, channels, xpix, ypix'
 
     if (selectCaChan):
         # Stack reduced to one color channel and flyback frames discrded

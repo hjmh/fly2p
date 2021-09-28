@@ -1,5 +1,5 @@
 from skimage.registration import phase_cross_correlation
-from scipy.ndimage import fourier_shift
+from scipy.ndimage import shift as spshift
 import xarray as xr
 
 from os.path import sep, exists
@@ -293,8 +293,7 @@ def motionCorrection(stack, shift):
     # shift stack according to shift
     for i in range(stack['volumes [s]'].size):
         shifImg = stack[i,:,:]
-        offset_image = fourier_shift(np.fft.fftn(shifImg), shift[:,i])
-        stackMC[i,:,:] = np.fft.ifftn(offset_image).real.astype('uint16')
+        stackMC[i,:,:] = spshift(shifImg, shift[:,i], order=1,mode='reflect')
 
     return stackMC
 
@@ -308,7 +307,6 @@ def applyShiftTo4Dstack(stack4d, shift):
         tmpVol = stack4d[{"volumes [s]": v}]
 
         for p in range(tmpVol["planes [µm]"].size):
-            offset_image = fourier_shift(np.fft.fftn(tmpVol[p,:,:]), shift[:,v])
-            stack4dMC[v,p,:,:] = np.fft.ifftn(offset_image).real.astype('uint16')
+            stack4dMC[v,p,:,:]  = spshift(tmpVol[p,:,:], shift[:,v], order=1,mode='reflect')
 
     return stack4dMC
