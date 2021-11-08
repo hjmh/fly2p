@@ -1,4 +1,3 @@
-from scipy.ndimage import shift as spshift
 import xarray as xr
 
 from os.path import sep, exists
@@ -245,7 +244,7 @@ def roll_ball(stack,radius=0.15):
 def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False):
     from skimage.registration import phase_cross_correlation
 
-    if len(refVol.shape) == 3:
+    if len(refImage.shape) == 3:
         print('perform motion correction on a volume')
         refImgFilt = refImage.copy()
         for p in range(stack['planes [µm]'].size):
@@ -263,7 +262,7 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
 
     # compute shift
     for i in range(stack['volumes [s]'].size):
-        if len(refVol.shape) == 3:
+        if len(refImage.shape) == 3:
             for p in range(stack['planes [µm]'].size):
                 shifImg = stack[i,p,:,:]
                 shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
@@ -279,7 +278,7 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
             shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, shifImgFilt,
                                                                          upsample_factor = upsampleFactor)
     if showShiftFig:
-        if len(refVol.shape) == 3:
+        if len(refImage.shape) == 3:
             fig, axs = plt.subplots(2,1,figsize=(15,6))
             axlab = ['x','y']
             for i, ax in enumerate(axs):
@@ -313,25 +312,35 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
 
 
 def motionCorrection(stack, shift):
-    stackMC = stack.copy()#np.ones(stackMP.shape).astype('int16')
+    from scipy.ndimage import shift as spshift
 
-    # shift stack according to shift
-    for i in range(stack['volumes [s]'].size):
-        shifImg = stack[i,:,:]
-        stackMC[i,:,:] = spshift(shifImg, shift[:,i], order=1,mode='reflect')
+    #check if shift was calculated for each plane in a volume separately, then check if stack to be aligned is 3d or 4d
+
+    #stack should be an xarray
+    stackMC = stack.copy()
+
+    if len(shift.shape) == 3:
+        # separate shifts for each plane in a volume
+        if len(stack.shape) < 4:
+            print("Imaging stack needs to be 4D.")
+            return np.nan*stackMC
+        for p in range(stack['planes [µm]'].size):
+            for i in range(stack['volumes [s]'].size):
+                shifImg = stack[i,p,:,:]
+                stackMC[i,p,:,:] = spshift(shifImg, shift[:,p,i], order=1,mode='reflect')
+
+    else:
+        #one shift per volume per time point
+        if len(stack.shape) < 4:
+            # motion correction on single plane or max projection
+            for i in range(stack['volumes [s]'].size):
+                shifImg = stack[i,:,:]
+                stackMC[i,:,:] = spshift(shifImg, shift[:,i], order=1,mode='reflect')
+        else:
+            #motion correction of 4D stack
+            for v in range(stack["volumes [s]"].size):  #move one volume at a time
+                tmpVol = stack[{"volumes [s]": v}]
+                for p in range(tmpVol["planes [µm]"].size):
+                    stackMC[v,p,:,:]  = spshift(tmpVol[p,:,:], shift[:,v], order=1,mode='reflect')
 
     return stackMC
-
-
-def applyShiftTo4Dstack(stack4d, shift):
-    #stack4d should be an xarray
-    stack4dMC = stack4d.copy()
-
-    for v in range(stack4d["volumes [s]"].size):
-        #move one volume at a time
-        tmpVol = stack4d[{"volumes [s]": v}]
-
-        for p in range(tmpVol["planes [µm]"].size):
-            stack4dMC[v,p,:,:]  = spshift(tmpVol[p,:,:], shift[:,v], order=1,mode='reflect')
-
-    return stack4dMC
