@@ -184,7 +184,7 @@ def computeDFF(stack,
             if baselineLowestMean:
                 for x in range(stack["xpix [µm]"].size):
                     for y in range(stack["ypix [µm]"].size):
-                        stackF0[p,:,x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseLinePercent, axis=0),x,y].mean()
+                        stackF0[p,x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseLinePercent, axis=0),x,y].mean()
             else:
                 stackF0[p,:,:] = np.percentile(filtF, baseLinePercent, axis=0) + offset
             stackF0[p,np.where(stackF0[p,:,:] == 0)[0]] += offset
