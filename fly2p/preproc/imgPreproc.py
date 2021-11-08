@@ -1,4 +1,3 @@
-from skimage.registration import phase_cross_correlation
 from scipy.ndimage import shift as spshift
 import xarray as xr
 
@@ -244,29 +243,55 @@ def roll_ball(stack,radius=0.15):
 ## MOTION CORRECTION ##
 
 def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False):
-    from scipy.ndimage.filters import gaussian_filter
+    from skimage.registration import phase_cross_correlation
 
-    refImgFilt = gaussian_filter(refImage, sigma=sigmaval)
+    if len(refVol.shape) == 3:
+        print('perform motion correction on a volume')
+        refImgFilt = refImage.copy()
+        for p in range(stack['planes [µm]'].size):
+            refImgFilt[p,:,:] = gaussian_filter(refImage[p,:,:], sigma=sigmaval)
+        shift = np.zeros((2, stack['planes [µm]'].size,stack['volumes [s]'].size))
+        error = np.zeros((stack['planes [µm]'].size,stack['volumes [s]'].size))
+        diffphase = np.zeros((stack['planes [µm]'].size,stack['volumes [s]'].size))
+    else:
+        print('perform motion correction on a single plane/max projection')
+        refImgFilt = gaussian_filter(refImage, sigma=sigmaval)
 
-    shift = np.zeros((2, stack['volumes [s]'].size))
-    error = np.zeros(stack['volumes [s]'].size)
-    diffphase = np.zeros(stack['volumes [s]'].size)
+        shift = np.zeros((2, stack['volumes [s]'].size))
+        error = np.zeros(stack['volumes [s]'].size)
+        diffphase = np.zeros(stack['volumes [s]'].size)
 
     # compute shift
     for i in range(stack['volumes [s]'].size):
-        shifImg = stack[i,:,:]
+        if len(refVol.shape) == 3:
+            for p in range(stack['planes [µm]'].size):
+                shifImg = stack[i,p,:,:]
+                shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
 
-        shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
+                # compute shift
+                shift[:,p,i], error[p,i], diffphase[p,i] = phase_cross_correlation(refImgFilt[p,:,:].data, shifImgFilt,
+                                                                             upsample_factor = upsampleFactor)
+        else:
+            shifImg = stack[i,:,:]
+            shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
 
-        # subpixel precision
-        shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, shifImgFilt,
-                                                                     upsample_factor = upsampleFactor)
+            # compute shift
+            shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, shifImgFilt,
+                                                                         upsample_factor = upsampleFactor)
     if showShiftFig:
-        fig, ax = plt.subplots(1,1,figsize=(15,5))
-        ax.plot(shift[0,:])
-        ax.plot(shift[1,:])
-        ax.set_xlabel('frames')
-        ax.set_ylabel('image shift')
+        if len(refVol.shape) == 3:
+            fig, axs = plt.subplots(2,1,figsize=(15,6))
+            axlab = ['x','y']
+            for i, ax in enumerate(axs):
+                ax.plot(shift[i,:].T)
+                ax.set_xlabel('frames')
+                ax.set_ylabel('image shift for {}'.format(axlab[i]))
+        else:
+            fig, ax = plt.subplots(1,1,figsize=(15,5))
+            ax.plot(shift[0,:])
+            ax.plot(shift[1,:])
+            ax.set_xlabel('frames')
+            ax.set_ylabel('image shift')
 
     if doFilter:
         shiftFilt_x = shift[0,:].copy()
