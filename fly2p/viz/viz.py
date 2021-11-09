@@ -61,6 +61,27 @@ def plotEllipse(ax, ctr, longax, shortax, ellipseRot,col, alphaval):
     ax.add_patch(ellipsepatch)
     return ax
 
+def makeEllipse(centerpt, longax, shortax, rotation):
+    import shapely as sp
+    # 1st elem = center point (x,y) coordinates
+    # 2nd elem = the two semi-axis values (along x, along y)
+    # 3rd elem = angle in degrees between x-axis of the Cartesian base
+    #            and the corresponding semi-axis
+    ellipse = (centerpt,(longax/2., shortax/2.),rotation)
+
+    # Let create a circle of radius 1 around center point:
+    circ = sp.geometry.Point(ellipse[0]).buffer(1)
+
+    # Let create the ellipse along x and y:
+    ell  = sp.affinity.scale(circ, int(ellipse[1][0]), int(ellipse[1][1]))
+
+    # Let rotate the ellipse (counterclockwise, x axis pointing right):
+    ell = sp.affinity.rotate(ell,-ellipse[2])
+    # According to the man, a positive value means a anti-clockwise angle,
+    # and a negative one a clockwise angle.
+
+    return ell.exterior
+
 
 ## EB specific
 ### Show position of shapely ROIs
