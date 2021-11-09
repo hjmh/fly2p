@@ -120,3 +120,74 @@ def plotEBshapelyROIs(refEBimg, ebcenter, EBaxisL, EBaxisS, ellipseRot, EBoutlin
     axs[2].plot(EBroiPts[0][0],EBroiPts[0][1], 'w.')
 
     return fig
+
+def generateEBellipse(longax,shortax,center,printResults = False):
+    from shapely.geometry.polygon import LineString
+    EBaxisL = LineString(longax)
+    EBaxisS = LineString(shortax)
+
+    if printResults:
+        print('EB center coordinates (px): {0}'.format(center))
+        print('EB axis lengths:  axis 1 = {0}, axis 2 = {1}'.format(round(EBaxisL.length/2.), round(EBaxisS.length/2.)))
+
+    axvec = abs(np.asarray(EBaxisL.coords[0])-np.asarray(EBaxisL.coords[1]))
+    ellipseRot = 90-np.arctan(axvec[0]/axvec[1])*180/np.pi
+
+    if printResults: print('EB main axis rotation (deg): {0}'.format(round(ellipseRot)))
+
+    EBoutline = makeEllipse(center, EBaxisL.length, EBaxisS.length, ellipseRot)
+
+    return EBaxisL, EBaxisS, ellipseRot, center, EBoutline
+
+
+def constructEBROIs(center, outline, nsteps=16, st=3):
+    # Use st to shift ROI pts circularely to start at ventral part of EB
+    EBroiPts = [center]
+
+    for s in range(nsteps):
+        [sx,sy] = outline.interpolate(s/nsteps, normalized=True).coords.xy
+        EBroiPts.append((sx[0],sy[0]))
+
+    EBroiPtsCopy = EBroiPts.copy()
+
+    for s in range(1,nsteps+1):
+        EBroiPts[s] = EBroiPtsCopy[(s+st)%nsteps+1]
+
+    EBroiPolys = []
+    for s in range(nsteps):
+        if s+1==nsteps:EBroiPolys.append([EBroiPts[0],EBroiPts[s+1],EBroiPts[1]])
+        else: EBroiPolys.append([EBroiPts[0],EBroiPts[s+1],EBroiPts[s+2]])
+
+    return EBroiPts, EBroiPolys
+
+
+def getDFFfromEllipseROI(EBroiPts, dffXarray):
+    from shapely.geometry.polygon import Polygon
+    nsteps = len(EBroiPts)-1
+
+    # create a list of possible pixel coordinates
+    imgrid = np.meshgrid(np.arange(0,dffXarray['xpix [µm]'].size), np.arange(0,dffXarray['ypix [µm]'].size))
+    pxcoords = list(zip(*(c.flat for c in imgrid)))
+
+    # Get all points in EB ellipse
+    EBPatch = ppatch.Polygon(EBroiPts[1:])
+    roiPts_x = [p[0] for p in pxcoords if EBPatch.contains_point(p, radius=0)]
+    roiPts_y = [p[1] for p in pxcoords if EBPatch.contains_point(p, radius=0)]
+
+    EBCoords = np.vstack((roiPts_x,roiPts_y))
+
+    # List for all roi point lists
+    EBroiCoords = []
+    for s in range(nsteps):
+        roiPatch = ppatch.Polygon(EBroiPolys[s])
+
+        # create the list of valid coordi nates (from untransformed)
+        roiPts_x = [p[0] for p in pxcoords if roiPatch.contains_point(p, radius=0)]
+        roiPts_y = [p[1] for p in pxcoords if roiPatch.contains_point(p, radius=0)]
+        EBroiCoords.append(np.vstack((np.asarray(roiPts_x),np.asarray(roiPts_y))))
+
+    dffROI = np.zeros((nsteps,dffStack.shape[0]))
+    for s in range(nsteps):
+        dffROI[s,:] = dffXarray.data[:,EBroiCoords[s][0],EBroiCoords[s][1]].mean(1)
+
+    return dffROI
