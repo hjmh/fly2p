@@ -161,7 +161,7 @@ def constructEBROIs(center, outline, nsteps=16, st=3):
     return EBroiPts, EBroiPolys
 
 
-def getDFFfromEllipseROI(EBroiPts, dffXarray):
+def getDFFfromEllipseROI(EBroiPts,EBroiPolys, dffXarray):
     from shapely.geometry.polygon import Polygon
     nsteps = len(EBroiPts)-1
 
@@ -186,7 +186,7 @@ def getDFFfromEllipseROI(EBroiPts, dffXarray):
         roiPts_y = [p[1] for p in pxcoords if roiPatch.contains_point(p, radius=0)]
         EBroiCoords.append(np.vstack((np.asarray(roiPts_x),np.asarray(roiPts_y))))
 
-    dffROI = np.zeros((nsteps,dffStack.shape[0]))
+    dffROI = np.zeros((nsteps,dffXarray.data.shape[0]))
     for s in range(nsteps):
         dffROI[s,:] = dffXarray.data[:,EBroiCoords[s][0],EBroiCoords[s][1]].mean(1)
 
