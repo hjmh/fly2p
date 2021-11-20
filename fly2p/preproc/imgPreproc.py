@@ -50,7 +50,7 @@ class imagingTimeseries:
 
         # reference images
         self.refImage.to_netcdf(sep.join([savepath,'refImg.nc']), mode='w')
-        self.refStackMC.to_netcdf(sep.join([savepath,'refStackMC.nc']), mode='w')
+        #self.refStackMC.to_netcdf(sep.join([savepath,'refStackMC.nc']), mode='w')
         self.dffStack.to_netcdf(sep.join([savepath,'dffStack.nc']), mode='w')
         self.F0stack.to_netcdf(sep.join([savepath,'F0stack.nc']), mode='w')
 
@@ -60,6 +60,42 @@ class imagingTimeseries:
 
         return savepath
 
+# save subset of data (when doing motion correction separately)
+def saveMetaData(saveDir, saveName, imgMetadata, rawTiff, genotype, flyID, trial, roitype, region):
+    import json
+    expMetadata = {
+        'tiffilename': rawTiff,
+        'genotype': genotype,
+        'flyid': flyID,
+        'trial':trial,
+        'roitype': roitype,
+        'brainregion': region
+    }
+
+    savepath = sep.join([saveDir,saveName, 'img'])
+
+    # make directory
+    if not exists(savepath):
+        makedirs(savepath)
+
+    # save metadata
+    with open(sep.join([savepath,'imgMetadata.json']), 'w') as outfile:
+        json.dump(imgMetadata, outfile,indent=4)
+    with open(sep.join([savepath,'expMetadata.json']), 'w') as outfile:
+        json.dump(expMetadata, outfile,indent=4)
+
+    return savepath
+
+
+def saveXArray(saveDir, saveName, fileName, myArray):
+    savepath = sep.join([saveDir,saveName, 'img'])
+
+    # make directory
+    if not exists(savepath): makedirs(savepath)
+
+    # save data
+    myArray.to_netcdf(sep.join([savepath,fileName+'.nc']), mode='w')
+    return savepath
 
 # construct imaging timeseries object from saved data files
 def loadImagingTimeseries(path2imgdat):
@@ -192,7 +228,9 @@ def computeDFF(stack,
             # Compute dF/F_0 = (F_raw - F_0)/F_0
             dffStack[:,p,:,:] = (filtF - stackF0[p,:,:]) / stackF0[p,:,:]
 
-    return dffStack, stackF0
+
+
+    return np.float32(dffStack), np.float32(stackF0)
 
 
 ### functions for background subtraction
