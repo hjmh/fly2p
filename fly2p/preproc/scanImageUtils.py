@@ -76,10 +76,7 @@ def getSIMetadict(metadat):
     SImetadict = json.loads(m)
 
     roiGroups = SImetadict['RoiGroups']
-    #print(roiGroups.keys())
-    #print(json.dumps(roiGroups['imagingRoiGroup']['rois']['UserData'],indent=4))
     return SImetadict
-
 
 
 ## LOAD AND RESHAPE IMAGE VOLUME ##
