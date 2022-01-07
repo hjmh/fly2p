@@ -99,8 +99,8 @@ def loadvolume(mytiffreader, basicMetadat, selectCaChan):
         vol = mytiffreader
     else:
         vol = mytiffreader.data()
-        vol = vol.reshape((int(vol.shape[0]/(basicMetadat['fpv']*basicMetadat['nCh'])),
-                           basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[1], vol.shape[2]))
+    vol = vol.reshape((int(vol.shape[0]/(basicMetadat['fpv']*basicMetadat['nCh'])),
+                        basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[1], vol.shape[2]))
         # Full dimensional stack: volumes, planes, channels, xpix, ypix'
 
     if (selectCaChan):
