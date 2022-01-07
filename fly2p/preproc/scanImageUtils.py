@@ -6,53 +6,66 @@ import numpy as np
 
 ## EXTRACT METADATA ##
 def getSIbasicMetadata(metadat):
-    for i, line in enumerate(metadat.split('\n')):
 
-        #initilize dict
-        metadict = {}
+    #initilize dict
+    metadict = {}
 
-        if not 'SI.' in line: continue
-        # extract version
-        if 'VERSION_' in line: print(line)
+    if type(metadat) == dict:  #the output of read_scanimage_metadata() from the tifffile module is a dict
+        nCh = metadata['SI.hChannels.channelSave']
+        fpsscan = metadata['SI.hRoiManager.scanFrameRate']
+        discardFBFrames = metadata['SI.hFastZ.discardFlybackFrames']
+        nDiscardFBFrames = metadata['SI.hFastZ.numDiscardFlybackFrames']
+        fpv = metadata['SI.hFastZ.numFramesPerVolume']
+        nVols = metadata['SI.hFastZ.numVolumes']
+        stackZStepSize = metadata['SI.hStackManager.stackZStepSize']
+        scanVolumeRate = metadata['SI.hRoiManager.scanVolumeRate']
+        [p00, p10, p01, p11] = metadata['SI.hRoiManager.imagingFovUm']
 
-        # get channel info
-        if 'channelSave' in line:
-            #print(line)
-            if not '[' in line:
-                nCh = 1
-            else:
-                nCh = int(line.split('=')[-1].strip())
+    else:
+        for i, line in enumerate(metadat.split('\n')):
 
-        if 'scanFrameRate' in line:
-            fpsscan = float(line.split('=')[-1].strip())
+            if not 'SI.' in line: continue
+            # extract version
+            if 'VERSION_' in line: print(line)
 
+            # get channel info
+            if 'channelSave' in line:
+                #print(line)
+                if not '[' in line:
+                    nCh = 1
+                else:
+                    nCh = int(line.split('=')[-1].strip())
 
-        #if 'hFastZ' in line:
-        if 'discardFlybackFrames' in line:
-            discardFBFrames = line.split('=')[-1].strip()
-
-        if 'numDiscardFlybackFrames' in line:
-            nDiscardFBFrames = int(line.split('=')[-1].strip())
-
-        if 'numFramesPerVolume' in line:
-            fpv = int(line.split('=')[-1].strip())
+            if 'scanFrameRate' in line:
+                fpsscan = float(line.split('=')[-1].strip())
 
 
-        if 'numVolumes' in line:
-            nVols = int(line.split('=')[-1].strip())
+            #if 'hFastZ' in line:
+            if 'discardFlybackFrames' in line:
+                discardFBFrames = line.split('=')[-1].strip()
 
-        if 'hStackManager.stackZStepSize' in line:
-            stackZStepSize = float(line.split('=')[-1].strip())
+            if 'numDiscardFlybackFrames' in line:
+                nDiscardFBFrames = int(line.split('=')[-1].strip())
 
-        if 'hRoiManager.scanVolumeRate' in line:
-            scanVolumeRate = float(line.split('=')[-1].strip())
+            if 'numFramesPerVolume' in line:
+                fpv = int(line.split('=')[-1].strip())
 
-        if 'SI.hRoiManager.imagingFovUm' in line:
-            imagingFovUm = line.split('=')[-1].strip()
-            p00 = np.fromstring(imagingFovUm[1:-1].split(';')[0], dtype=float, count=2, sep=' ')
-            p10 = np.fromstring(imagingFovUm[1:-1].split(';')[1], dtype=float, count=2, sep=' ')
-            p01 = np.fromstring(imagingFovUm[1:-1].split(';')[2], dtype=float, count=2, sep=' ')
-            p11 = np.fromstring(imagingFovUm[1:-1].split(';')[3], dtype=float, count=2, sep=' ')
+
+            if 'numVolumes' in line:
+                nVols = int(line.split('=')[-1].strip())
+
+            if 'hStackManager.stackZStepSize' in line:
+                stackZStepSize = float(line.split('=')[-1].strip())
+
+            if 'hRoiManager.scanVolumeRate' in line:
+                scanVolumeRate = float(line.split('=')[-1].strip())
+
+            if 'SI.hRoiManager.imagingFovUm' in line:
+                imagingFovUm = line.split('=')[-1].strip()
+                p00 = np.fromstring(imagingFovUm[1:-1].split(';')[0], dtype=float, count=2, sep=' ')
+                p10 = np.fromstring(imagingFovUm[1:-1].split(';')[1], dtype=float, count=2, sep=' ')
+                p01 = np.fromstring(imagingFovUm[1:-1].split(';')[2], dtype=float, count=2, sep=' ')
+                p11 = np.fromstring(imagingFovUm[1:-1].split(';')[3], dtype=float, count=2, sep=' ')
 
     metadict["nCh"] = nCh
     metadict["fpsscan"] = fpsscan
