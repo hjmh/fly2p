@@ -11,15 +11,15 @@ def getSIbasicMetadata(metadat):
     metadict = {}
 
     if type(metadat) == dict:  #the output of read_scanimage_metadata() from the tifffile module is a dict
-        nCh = metadata['SI.hChannels.channelSave']
-        fpsscan = metadata['SI.hRoiManager.scanFrameRate']
-        discardFBFrames = metadata['SI.hFastZ.discardFlybackFrames']
-        nDiscardFBFrames = metadata['SI.hFastZ.numDiscardFlybackFrames']
-        fpv = metadata['SI.hFastZ.numFramesPerVolume']
-        nVols = metadata['SI.hFastZ.numVolumes']
-        stackZStepSize = metadata['SI.hStackManager.stackZStepSize']
-        scanVolumeRate = metadata['SI.hRoiManager.scanVolumeRate']
-        [p00, p10, p01, p11] = metadata['SI.hRoiManager.imagingFovUm']
+        nCh = metadat['SI.hChannels.channelSave']
+        fpsscan = metadat['SI.hRoiManager.scanFrameRate']
+        discardFBFrames = metadat['SI.hFastZ.discardFlybackFrames']
+        nDiscardFBFrames = metadat['SI.hFastZ.numDiscardFlybackFrames']
+        fpv = metadat['SI.hFastZ.numFramesPerVolume']
+        nVols = metadat['SI.hFastZ.numVolumes']
+        stackZStepSize = metadat['SI.hStackManager.stackZStepSize']
+        scanVolumeRate = metadat['SI.hRoiManager.scanVolumeRate']
+        [p00, p10, p01, p11] = metadat['SI.hRoiManager.imagingFovUm']
 
     else:
         for i, line in enumerate(metadat.split('\n')):
@@ -95,10 +95,13 @@ def getSIMetadict(metadat):
 ## LOAD AND RESHAPE IMAGE VOLUME ##
 
 def loadvolume(mytiffreader, basicMetadat, selectCaChan):
-    vol = mytiffreader.data()
-    vol = vol.reshape((int(vol.shape[0]/(basicMetadat['fpv']*basicMetadat['nCh'])),
-                       basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[1], vol.shape[2]))
-    # Full dimensional stack: volumes, planes, channels, xpix, ypix'
+    if isinstance(mytiffreader, np.ndarray):
+        vol = mytiffreader
+    else:
+        vol = mytiffreader.data()
+        vol = vol.reshape((int(vol.shape[0]/(basicMetadat['fpv']*basicMetadat['nCh'])),
+                           basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[1], vol.shape[2]))
+        # Full dimensional stack: volumes, planes, channels, xpix, ypix'
 
     if (selectCaChan):
         # Stack reduced to one color channel and flyback frames discrded
