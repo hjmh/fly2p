@@ -97,6 +97,11 @@ def saveXArray(saveDir, saveName, fileName, myArray):
     myArray.to_netcdf(sep.join([savepath,fileName+'.nc']), mode='w')
     return savepath
 
+def saveRoiData(roiMask, roiDFF, savepath, saveName = 'roiDFF.csv'):
+    np.save(sep.join([savepath, 'img','roiMask']),roiMask)
+    roiDFF.to_csv(sep.join([savepath,'img', saveName]))
+    return savepath
+
 # construct imaging timeseries object from saved data files
 def loadImagingTimeseries(path2imgdat):
 
