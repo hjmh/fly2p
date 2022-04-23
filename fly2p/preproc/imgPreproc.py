@@ -13,9 +13,6 @@ from dataclasses import dataclass, asdict
 
 from matplotlib import pyplot as plt
 
-# ToDo: make dataclass for holding preprocessed, full imaging data (DFF volume,..)
-
-
 ## DATA CLASS FOR IMAGING DATA
 @dataclass
 class imagingTimeseries:
@@ -232,8 +229,6 @@ def computeDFF(stack,
 
             # Compute dF/F_0 = (F_raw - F_0)/F_0
             dffStack[:,p,:,:] = (filtF - stackF0[p,:,:]) / stackF0[p,:,:]
-
-
 
     return np.float32(dffStack), np.float32(stackF0)
 
