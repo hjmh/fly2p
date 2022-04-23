@@ -2,7 +2,7 @@
 
 # fly2p
 
-Tools for analyzing two-photon (2p) imaging data collected with [Vidrio Scanimage software](https://vidriotechnologies.com/scanimage/) and [micromanger](https://micro-manager.org/). Loading scanimage data relies on [scanimageReader](https://pypi.org/project/scanimage-tiff-reader/), which can be installed via 'pip install scanimage-tiff-reader'. Other dependencies are tracked using poetry.
+Tools for analyzing imaging data collected with [Vidrio Scanimage software](https://vidriotechnologies.com/scanimage/) or [micromanger](https://micro-manager.org/). Loading ScanImage data relies on [scanimageReader](https://pypi.org/project/scanimage-tiff-reader/), which can be installed via 'pip install scanimage-tiff-reader'. Other dependencies are tracked using poetry.
 
 ### Organization
 The fly2p package contains the following submodules:
@@ -26,5 +26,5 @@ I recommend using poetry to setup a custom conda environment. A helpful introduc
     `conda install -c anaconda ipykernel`  
     then  
     `python -m ipykernel install --user --name=fly2p`
-    
+
 Now you should be able to run the example notebooks in the **scripts** folder without problems.
