@@ -24,7 +24,6 @@ class imagingTimeseries:
 
     # reference images
     refImage: xr.DataArray # image used for motion correction (MC)
-    refStackMC: xr.DataArray # image or stack, mean flourescense over time after MC
     dffStack: xr.DataArray # image or stack, maximum intensity projection of DFF over time after MC
     F0stack: xr.DataArray # image or stack of F0 (baseline flourescences)
 
@@ -47,7 +46,6 @@ class imagingTimeseries:
 
         # reference images
         self.refImage.to_netcdf(sep.join([savepath,'refImg.nc']), mode='w')
-        #self.refStackMC.to_netcdf(sep.join([savepath,'refStackMC.nc']), mode='w')
         self.dffStack.to_netcdf(sep.join([savepath,'dffStack.nc']), mode='w')
         self.F0stack.to_netcdf(sep.join([savepath,'F0stack.nc']), mode='w')
 
@@ -105,7 +103,6 @@ def loadImagingTimeseries(path2imgdat):
     dffStack_load = xr.open_dataarray(path2imgdat+sep+'dffStack.nc', decode_coords='coordinates')
     F0Xarray_load = xr.open_dataarray(path2imgdat+sep+'F0stack.nc', decode_coords='coordinates')
     refImg_load = xr.open_dataarray(path2imgdat+sep+'refImg.nc', decode_coords='coordinates')
-    refStackMC_load = xr.open_dataarray(path2imgdat+sep+'refStackMC.nc', decode_coords='coordinates')
 
     with open(path2imgdat+sep+'imgMetadata.json') as f:
         basicMetadat_load = json.load(f)
@@ -119,7 +116,6 @@ def loadImagingTimeseries(path2imgdat):
         imgMetadata = basicMetadat_load,
         expMetadata = expMetadat_load,
         refImage = refImg_load,
-        refStackMC = refStackMC_load,
         dffStack = dffStack_load,
         F0stack = F0Xarray_load,
         roitype = expMetadat_load['roitype'],
