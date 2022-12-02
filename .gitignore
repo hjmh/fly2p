@@ -6,5 +6,7 @@ fly2p/preproc/.ipynb_checkpoints/*.*
 fly2p/viz/.ipynb_checkpoints/*.*
 
 fly2p/sample/*.*
+!fly2p/sample/SS96-x-7f_EB_sample.tif
+fly2p/sample/img/*.*
 *.pdf
 *.pyc
