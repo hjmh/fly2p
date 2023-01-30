@@ -100,7 +100,7 @@ def loadvolume(path2tiff, basicMetadat, selectCaChan):
     vol = io.imread(path2tiff)
 
     vol = vol.reshape((int(vol.shape[0]/(basicMetadat['fpv'])),
-                        basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[1], vol.shape[2]))
+                        basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[-2], vol.shape[-1]))
         # Full dimensional stack: volumes, planes, channels, xpix, ypix'
 
     if (selectCaChan):
