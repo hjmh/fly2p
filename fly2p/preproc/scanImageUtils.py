@@ -34,6 +34,8 @@ def getSIbasicMetadata(metadat):
                 if not '[' in line:
                     nCh = 1
                 else:
+                    strchanlist = line.split('=')[-1].strip()
+                    chanlist = [int(i) for i in strlist.strip('][').split(' ')]        
                     nCh = int(line.split('=')[-1].strip())
 
             if 'scanFrameRate' in line:
