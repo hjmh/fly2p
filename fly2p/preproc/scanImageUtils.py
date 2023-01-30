@@ -36,7 +36,7 @@ def getSIbasicMetadata(metadat):
                 else:
                     strchanlist = line.split('=')[-1].strip()
                     chanlist = [int(i) for i in strchanlist.strip('][').split(' ')]        
-                    nCh = chanlist
+                    nCh = len(chanlist)
 
             if 'scanFrameRate' in line:
                 fpsscan = float(line.split('=')[-1].strip())
