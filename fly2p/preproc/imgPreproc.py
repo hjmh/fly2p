@@ -4,7 +4,7 @@ from os.path import sep, exists
 from os import mkdir, makedirs, getcwd
 
 from scipy.signal import savgol_filter
-from scipy.ndimage.filters import gaussian_filter
+from scipy.ndimage import gaussian_filter
 
 import numpy as np
 import pandas as pd
@@ -303,14 +303,14 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
 
                 # compute shift
                 shift[:,p,i], error[p,i], diffphase[p,i] = phase_cross_correlation(refImgFilt[p,:,:].data, shifImgFilt,
-                                                                             upsample_factor = upsampleFactor)
+                                                                             upsample_factor = upsampleFactor, normalization=None)
         else:
             shifImg = stack[i,:,:]
             shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
 
             # compute shift
             shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, shifImgFilt,
-                                                                         upsample_factor = upsampleFactor)
+                                                                         upsample_factor = upsampleFactor, normalization=None)
     if showShiftFig:
         if len(refImage.shape) == 3:
             fig, axs = plt.subplots(2,1,figsize=(15,6))
