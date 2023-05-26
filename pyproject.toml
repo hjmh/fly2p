@@ -5,6 +5,8 @@ description = "Tools for analyzing 2p (calcium) imaging data collected in flies 
 authors = ["hjmh <hjmhaberkern@gmail.com>"]
 license = "MIT"
 
+exclude = ["**/sample/*","**/sample/**/*","**/scripts/*"]
+
 [tool.poetry.dependencies]
 python = "^3.8"
 matplotlib = "^3.3.3"
