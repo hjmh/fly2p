@@ -99,6 +99,11 @@ def getSIMetadict(metadat):
 def loadvolume(path2tiff, basicMetadat, selectCaChan):
     vol = io.imread(path2tiff)
 
+    #truncate in case aquisition was interrupted and the last volume was incomplete
+    trunk = (vol.shape[0])%(basicMetadat['fpv'])
+    if trunk > 0:
+        vol = vol[:-trunk,:,:]
+
     vol = vol.reshape((int(vol.shape[0]/(basicMetadat['fpv'])),
                         basicMetadat['fpv'],basicMetadat['nCh'],vol.shape[-2], vol.shape[-1]))
         # Full dimensional stack: volumes, planes, channels, xpix, ypix'
