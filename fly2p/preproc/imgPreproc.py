@@ -340,9 +340,9 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
                 shiftFilt_x_interp[p,:] = np.interp(allT, allT[~np.isnan(shiftFilt_x[p,:])], shiftFilt_x[p,~np.isnan(shiftFilt_x[p,:])])
                 shiftFilt_y_interp[p,:] = np.interp(allT, allT[~np.isnan(shiftFilt_y[p,:])], shiftFilt_y[p,~np.isnan(shiftFilt_y[p,:])])
 
-                if showShiftFig & sum(abs(shiftFilt_x[p,:]) > stdFactor*np.std(shiftFilt_x.flatten()))>0:
-                    axs[0].plot(shiftFilt_x_interp[p,:],'b', linestyle='dashed')
-                    axs[1].plot(shiftFilt_y_interp[p,:],'c',linestyle='dashed')
+                if showShiftFig & np.sum(abs(shiftFilt_x[p,:]) > stdFactor*np.std(shiftFilt_x.flatten()))>0:
+                    axs[0].plot(shiftFilt_x_interp[p,:], linestyle='dashed')
+                    axs[1].plot(shiftFilt_y_interp[p,:], linestyle='dashed')
 
             shift = np.zeros((2,shiftFilt_x_interp.shape[0],shiftFilt_x_interp.shape[1]))
             shift[0,:,:] = shiftFilt_x_interp
