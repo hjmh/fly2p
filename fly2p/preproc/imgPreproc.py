@@ -327,22 +327,43 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
             ax.set_ylabel('image shift')
 
     if doFilter:
-        shiftFilt_x = shift[0,:].copy()
-        shiftFilt_y = shift[1,:].copy()
-        shiftFilt_x[abs(shiftFilt_x) > stdFactor*np.std(shiftFilt_x)] = np.nan
-        shiftFilt_y[abs(shiftFilt_y) > stdFactor*np.std(shiftFilt_y)] = np.nan
+        if len(refImage.shape) == 3:
+            shiftFilt_x = shift[0,:,:].copy()
+            shiftFilt_y = shift[1,:,:].copy()
+            shiftFilt_x_interp = shiftFilt_x
+            shiftFilt_y_interp = shiftFilt_y
+            for p in range(stack['planes [µm]'].size):
+                shiftFilt_x[p,abs(shiftFilt_x[p,:]) > stdFactor*np.std(shiftFilt_x.flatten())] = np.nan
+                shiftFilt_y[p,abs(shiftFilt_y[p,:]) > stdFactor*np.std(shiftFilt_y.flatten())] = np.nan
 
-        allT = np.arange(len(shiftFilt_x))
-        shiftFilt_x_interp = np.interp(allT, allT[~np.isnan(shiftFilt_x)], shiftFilt_x[~np.isnan(shiftFilt_x)])
-        shiftFilt_y_interp = np.interp(allT, allT[~np.isnan(shiftFilt_y)], shiftFilt_y[~np.isnan(shiftFilt_y)])
+                allT = np.arange(len(shiftFilt_x[p,:]))
+                shiftFilt_x_interp[p,:] = np.interp(allT, allT[~np.isnan(shiftFilt_x[p,:])], shiftFilt_x[p,~np.isnan(shiftFilt_x[p,:])])
+                shiftFilt_y_interp[p,:] = np.interp(allT, allT[~np.isnan(shiftFilt_y[p,:])], shiftFilt_y[p,~np.isnan(shiftFilt_y[p,:])])
 
-        if showShiftFig:
-            ax.plot(shiftFilt_x_interp,'b')
-            ax.plot(shiftFilt_y_interp,'c')
+            if showShiftFig:
+                axs[0].plot(shiftFilt_x_interp[p,:],'b', linestyle='dashed')
+                axs[1].plot(shiftFilt_y_interp[p,:],'c',linestyle='dashed')
 
-        return np.vstack((shiftFilt_x_interp,shiftFilt_y_interp))
+            return np.vstack((shiftFilt_x_interp,shiftFilt_y_interp))
+        
+        else:
+            shiftFilt_x = shift[0,:].copy()
+            shiftFilt_y = shift[1,:].copy()
+            shiftFilt_x[abs(shiftFilt_x) > stdFactor*np.std(shiftFilt_x)] = np.nan
+            shiftFilt_y[abs(shiftFilt_y) > stdFactor*np.std(shiftFilt_y)] = np.nan
+
+            allT = np.arange(len(shiftFilt_x))
+            shiftFilt_x_interp = np.interp(allT, allT[~np.isnan(shiftFilt_x)], shiftFilt_x[~np.isnan(shiftFilt_x)])
+            shiftFilt_y_interp = np.interp(allT, allT[~np.isnan(shiftFilt_y)], shiftFilt_y[~np.isnan(shiftFilt_y)])
+
+            if showShiftFig:
+                ax.plot(shiftFilt_x_interp,'b')
+                ax.plot(shiftFilt_y_interp,'c')
+
+            return np.vstack((shiftFilt_x_interp,shiftFilt_y_interp))
     else:
         return shift
+
 
 
 def motionCorrection(stack, shift):
