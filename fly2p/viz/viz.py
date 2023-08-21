@@ -31,8 +31,11 @@ def pathPlotAxisTheme(myax, units):
     myax.set_ylabel('y [{}]'.format(units))
 
 # Calcium traces vizualization .................................................
-def plotDFFheatmap(time, roidat, ax, fig):
-    cax = ax.pcolor(time,np.arange(0,roidat.shape[0]),roidat,cmap='Blues', edgecolors='face',shading='auto')
+def plotDFFheatmap(time, roidat, ax, fig, vmax=None):
+    if vmax is None:
+        cax = ax.pcolor(time,np.arange(0,roidat.shape[0]),roidat,cmap='Blues', edgecolors='face',shading='auto')
+    else:
+        cax = ax.pcolor(time,np.arange(0,roidat.shape[0]),roidat,vmax=vmax,cmap='Blues', edgecolors='face',shading='auto')
     ax.set_xlabel('Time [s]')
     ax.set_ylabel('\nROIs (n = {0})'.format(roidat.shape[0]))
 
