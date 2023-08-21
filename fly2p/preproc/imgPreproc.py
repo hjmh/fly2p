@@ -275,17 +275,29 @@ def roll_ball(stack,radius=0.15):
 
 ## MOTION CORRECTION ##
 
-def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False):
+def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False, inZ=False):
     from skimage.registration import phase_cross_correlation
 
     if len(refImage.shape) == 3:
-        print('perform motion correction on a volume')
-        refImgFilt = refImage.copy()
-        for p in range(stack['planes [µm]'].size):
-            refImgFilt[p,:,:] = gaussian_filter(refImage[p,:,:], sigma=sigmaval)
-        shift = np.zeros((2, stack['planes [µm]'].size,stack['volumes [s]'].size))
-        error = np.zeros((stack['planes [µm]'].size,stack['volumes [s]'].size))
-        diffphase = np.zeros((stack['planes [µm]'].size,stack['volumes [s]'].size))
+        if not inZ:
+            print('perform motion correction on a volume plane-by-plane')
+            refImgFilt = refImage.copy()
+            for p in range(stack['planes [µm]'].size):
+                refImgFilt[p,:,:] = gaussian_filter(refImage[p,:,:], sigma=sigmaval)
+            shift = np.zeros((2, stack['planes [µm]'].size,stack['volumes [s]'].size))
+            error = np.zeros((stack['planes [µm]'].size,stack['volumes [s]'].size))
+            diffphase = np.zeros((stack['planes [µm]'].size,stack['volumes [s]'].size))
+        else:
+            print('perform motion correction on a volume including along z-axis')
+            #check if sigma too high
+            if sigmaval>=(refImage.shape[0]/2):
+                print("sigmaval too high; sigmaval set to 2")
+            refImgFilt = gaussian_filter(refImage, sigma=max([refImage.shape[0]/2,2])) 
+            #planes above and below will be smoothed
+            
+            shift = np.zeros([3, stack['volumes [s]'].size])
+            error = np.zeros(stack['volumes [s]'].size)
+            diffphase = np.zeros(stack['volumes [s]'].size)
     else:
         print('perform motion correction on a single plane/max projection')
         refImgFilt = gaussian_filter(refImage, sigma=sigmaval)
@@ -294,16 +306,31 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
         error = np.zeros(stack['volumes [s]'].size)
         diffphase = np.zeros(stack['volumes [s]'].size)
 
-    # compute shift
+    # compute for various conditions
     for i in range(stack['volumes [s]'].size):
+        
+        #3d reference image
         if len(refImage.shape) == 3:
-            for p in range(stack['planes [µm]'].size):
-                shifImg = stack[i,p,:,:]
-                shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
+            
+            #computing x-y shift for each plane seperately
+            if not inZ:
+                for p in range(stack['planes [µm]'].size):
+                    shifImg = stack[i,p,:,:]
+                    shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
 
-                # compute shift
-                shift[:,p,i], error[p,i], diffphase[p,i] = phase_cross_correlation(refImgFilt[p,:,:].data, shifImgFilt,
-                                                                             upsample_factor = upsampleFactor, normalization=None)
+                    # compute shift
+                    shift[:,p,i], error[p,i], diffphase[p,i] = phase_cross_correlation(refImgFilt[p,:,:].data, shifImgFilt,
+                                                                                 upsample_factor = upsampleFactor, normalization=None)
+            
+            #computing x-y-z shift for the entire volume
+            else:
+                shifImg = stack[i,:,:,:]
+                shifImgFilt = gaussian_filter(shifImg, sigma=max([shifImg.shape[0]/2,2])) #planes above and below will be smoothed
+                
+                
+                 #compute shift
+                shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, stack[i,:,:,:], upsample_factor = upsampleFactor, normalization=None)
+                
         else:
             shifImg = stack[i,:,:]
             shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
@@ -311,14 +338,30 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
             # compute shift
             shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, shifImgFilt,
                                                                          upsample_factor = upsampleFactor, normalization=None)
+        
+        #progress report
+        if (i+1)%(int(stack['volumes [s]'].size/10)) == 0: 
+            print(".", end = " ")
+            
     if showShiftFig:
         if len(refImage.shape) == 3:
-            fig, axs = plt.subplots(2,1,figsize=(15,6))
-            axlab = ['x','y']
-            for i, ax in enumerate(axs):
-                ax.plot(shift[i,:].T)
-                ax.set_xlabel('frames')
-                ax.set_ylabel('image shift for {}'.format(axlab[i]))
+            if not inZ:
+                fig, axs = plt.subplots(2,1,figsize=(15,6))
+                axlab = ['x','y']
+                for i, ax in enumerate(axs):
+                    ax.plot(shift[i,:].T)
+                    ax.set_xlabel('frames')
+                    ax.set_ylabel('image shift for {}'.format(axlab[i]))
+            else:
+                fig, axs = plt.subplots(2,1,figsize=(15,6))
+                axs[0].plot(shift[1,:])
+                axs[0].plot(shift[2,:])
+                axs[1].plot(shift[0,:], color = 'k')
+                axs[0].set_xlabel('frames')
+                axs[1].set_xlabel('frames')
+                axs[0].set_ylabel('shift [px]')
+                axs[1].set_ylabel('shift [planes]')
+                
         else:
             fig, ax = plt.subplots(1,1,figsize=(15,5))
             ax.plot(shift[0,:])
@@ -328,26 +371,47 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
 
     if doFilter:
         if len(refImage.shape) == 3:
-            shiftFilt_x = shift[0,:,:].copy()
-            shiftFilt_y = shift[1,:,:].copy()
-            shiftFilt_x_interp = shiftFilt_x
-            shiftFilt_y_interp = shiftFilt_y
-            for p in range(stack['planes [µm]'].size):
-                shiftFilt_x[p,abs(shiftFilt_x[p,:]) > stdFactor*np.std(shiftFilt_x.flatten())] = np.nan
-                shiftFilt_y[p,abs(shiftFilt_y[p,:]) > stdFactor*np.std(shiftFilt_y.flatten())] = np.nan
+            if not inZ:
+                shiftFilt_x = shift[0,:,:].copy()
+                shiftFilt_y = shift[1,:,:].copy()
+                shiftFilt_x_interp = shiftFilt_x
+                shiftFilt_y_interp = shiftFilt_y
+                for p in range(stack['planes [µm]'].size):
+                    shiftFilt_x[p,abs(shiftFilt_x[p,:]) > stdFactor*np.std(shiftFilt_x.flatten())] = np.nan
+                    shiftFilt_y[p,abs(shiftFilt_y[p,:]) > stdFactor*np.std(shiftFilt_y.flatten())] = np.nan
 
-                allT = np.arange(len(shiftFilt_x[p,:]))
-                shiftFilt_x_interp[p,:] = np.interp(allT, allT[~np.isnan(shiftFilt_x[p,:])], shiftFilt_x[p,~np.isnan(shiftFilt_x[p,:])])
-                shiftFilt_y_interp[p,:] = np.interp(allT, allT[~np.isnan(shiftFilt_y[p,:])], shiftFilt_y[p,~np.isnan(shiftFilt_y[p,:])])
+                    allT = np.arange(len(shiftFilt_x[p,:]))
+                    shiftFilt_x_interp[p,:] = np.interp(allT, allT[~np.isnan(shiftFilt_x[p,:])], shiftFilt_x[p,~np.isnan(shiftFilt_x[p,:])])
+                    shiftFilt_y_interp[p,:] = np.interp(allT, allT[~np.isnan(shiftFilt_y[p,:])], shiftFilt_y[p,~np.isnan(shiftFilt_y[p,:])])
 
-                if showShiftFig & np.sum(abs(shiftFilt_x[p,:]) > stdFactor*np.std(shiftFilt_x.flatten()))>0:
-                    axs[0].plot(shiftFilt_x_interp[p,:], linestyle='dashed')
-                    axs[1].plot(shiftFilt_y_interp[p,:], linestyle='dashed')
+                    if showShiftFig & np.sum(abs(shiftFilt_x[p,:]) > stdFactor*np.std(shiftFilt_x.flatten()))>0:
+                        axs[0].plot(shiftFilt_x_interp[p,:], linestyle='dashed')
+                        axs[1].plot(shiftFilt_y_interp[p,:], linestyle='dashed')
 
-            shift = np.zeros((2,shiftFilt_x_interp.shape[0],shiftFilt_x_interp.shape[1]))
-            shift[0,:,:] = shiftFilt_x_interp
-            shift[1,:,:] = shiftFilt_y_interp
-            return shift
+                shift = np.zeros((2,shiftFilt_x_interp.shape[0],shiftFilt_x_interp.shape[1]))
+                shift[0,:,:] = shiftFilt_x_interp
+                shift[1,:,:] = shiftFilt_y_interp
+                return shift
+            else:
+                #inZ is true
+                shiftFilt_z = shift[0,:].copy()
+                shiftFilt_x = shift[1,:].copy()
+                shiftFilt_y = shift[2,:].copy()
+                shiftFilt_z[abs(shiftFilt_z) > stdFactor*np.std(shiftFilt_z)] = np.nan
+                shiftFilt_x[abs(shiftFilt_x) > stdFactor*np.std(shiftFilt_x)] = np.nan
+                shiftFilt_y[abs(shiftFilt_y) > stdFactor*np.std(shiftFilt_y)] = np.nan
+                
+                allT = np.arange(len(shiftFilt_x))
+                shiftFilt_z_interp = np.interp(allT, allT[~np.isnan(shiftFilt_z)], shiftFilt_z[~np.isnan(shiftFilt_z)])
+                shiftFilt_x_interp = np.interp(allT, allT[~np.isnan(shiftFilt_x)], shiftFilt_x[~np.isnan(shiftFilt_x)])
+                shiftFilt_y_interp = np.interp(allT, allT[~np.isnan(shiftFilt_y)], shiftFilt_y[~np.isnan(shiftFilt_y)])
+
+                if showShiftFig:
+                    axs[0].plot(shiftFilt_x_interp,'b')
+                    axs[0].plot(shiftFilt_y_interp,'c')
+                    axs[1].plot(shiftFilt_z_interp,'r')
+
+                return np.vstack((shiftFilt_z_interp,shiftFilt_x_interp,shiftFilt_y_interp))
         
         else:
             shiftFilt_x = shift[0,:].copy()
@@ -371,33 +435,37 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
 def motionCorrection(stack, shift):
     from scipy.ndimage import shift as spshift
 
-    #check if shift was calculated for each plane in a volume separately, then check if stack to be aligned is 3d or 4d
+    #check if shift was calculated for each plane in a volume separately, 
+    #then check if stack to be aligned is 3d or 4d
 
     #stack should be an xarray
     stackMC = stack.copy()
 
     if len(shift.shape) == 3:
         # separate shifts for each plane in a volume
-        if len(stack.shape) < 4:
-            print("Imaging stack needs to be 4D.")
-            return np.nan*stackMC
-        for p in range(stack['planes [µm]'].size):
-            for i in range(stack['volumes [s]'].size):
+        assert len(stack.shape)==4, "Imaging stack needs to be 4D"
+        
+        for i in range(stack['volumes [s]'].size):
+            for p in range(stack['planes [µm]'].size):
                 shifImg = stack[i,p,:,:]
                 stackMC[i,p,:,:] = spshift(shifImg, shift[:,p,i], order=1,mode='reflect')
-
+                
+            #progress report
+            if (i+1)%(int(stack['volumes [s]'].size/10)) == 0: print(".", end = " ")
+            
     else:
         #one shift per volume per time point
-        if len(stack.shape) < 4:
-            # motion correction on single plane or max projection
-            for i in range(stack['volumes [s]'].size):
-                shifImg = stack[i,:,:]
-                stackMC[i,:,:] = spshift(shifImg, shift[:,i], order=1,mode='reflect')
-        else:
-            #motion correction of 4D stack
-            for v in range(stack["volumes [s]"].size):  #move one volume at a time
-                tmpVol = stack[{"volumes [s]": v}]
-                for p in range(tmpVol["planes [µm]"].size):
-                    stackMC[v,p,:,:]  = spshift(tmpVol[p,:,:], shift[:,v], order=1,mode='reflect')
-
+        
+        if shift.shape[0] == 3:
+            #shift has 3 axes
+            assert len(stack.shape)==4, "Imaging stack needs to be 4D"
+        
+        # motion correction on max projection in 2 axes or entire volume in 3 axes
+        for i in range(stack['volumes [s]'].size):
+            shifImg = stack[i,:,:]
+            stackMC[i,:,:] = spshift(shifImg, shift[:,i], order=1,mode='reflect')
+            
+            #progress report
+            if (i+1)%(int(stack['volumes [s]'].size/10)) == 0: print(".", end = " ")
+            
     return stackMC
