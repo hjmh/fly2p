@@ -275,6 +275,20 @@ def roll_ball(stack,radius=0.15):
 
 ## MOTION CORRECTION ##
 
+def genReference(imgStack, numRefImg, v1, v2, maxProject=False): 
+    # generate a 2D or 3D reference based on averages a subset of frames from the full time series and optional maxprojection
+    
+    t1 = round(imgStack['volumes [s]'].size/v1)
+    t2 = round(imgStack['volumes [s]'].size/v2)
+    
+    if maxProject:
+        stackMP = np.max(imgStack, axis=1) # max projection over volume
+        reference = np.mean(stackMP[ t1 : t1+numRefImg,:,:],axis=0) + np.mean(stackMP[ t2 : t2+numRefImg,:,:],axis=0)
+    else:
+        reference = np.mean(imgStack[ t1 : t1+numRefImg,:,:,:],axis=0) + np.mean(imgStack[ t2 : t2+numRefImg,:,:,:],axis=0)
+    return reference
+
+
 def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False, inZ=False):
     from skimage.registration import phase_cross_correlation
 
