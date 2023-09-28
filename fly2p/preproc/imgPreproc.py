@@ -183,7 +183,7 @@ def computeDFF(stack,
                 filtStack = xr.apply_ufunc(roi_subtract,filtStack,
                                            kwargs={"background_mask":background_mask})
             else:
-                filtStack = xr.apply_ufunc(roll_ball,filtStack)
+                print('please provide a background mask')
 
         filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
 
@@ -230,7 +230,7 @@ def computeDFF(stack,
 
 
 ### functions for background subtraction
-# Method 1: Background is manually drawn
+# Background is manually drawn
 def roi_subtract(stack, background_mask, order = 3,window = 7):
     T = stack.shape[0]
 
@@ -244,28 +244,6 @@ def roi_subtract(stack, background_mask, order = 3,window = 7):
 
     #subtract
     filt = np.array([stack[t,:,:]-back_F[t] for t in range(T)])
-
-    #range should be same as before subtraction and convert to integer values
-    filt = np.round(((filt-filt.min())/
-                     (filt.max()-filt.min())*(stack.max()-stack.min()))+stack.min())
-
-    return filt
-
-# Method 2: Rolling ball subtraction
-def roll_ball(stack,radius=0.15):
-    #slower than ROI based subtraction
-
-    r = stack.shape[1]*radius
-    R = r/np.max(stack) #normalised radius
-
-    #larger radius fraction implies less artefacts but slower processing
-    ker = restoration.ellipsoid_kernel((1, 2*r, 2*r), 2*R)
-
-    #estimate background for each static image
-    background = restoration.rolling_ball(stack,kernel=ker)
-
-    #subtract
-    filt = stack-background
 
     #range should be same as before subtraction and convert to integer values
     filt = np.round(((filt-filt.min())/
