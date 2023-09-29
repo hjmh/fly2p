@@ -289,8 +289,11 @@ def genReference(imgStack, numRefImg, v1, v2, maxProject=False):
     return reference
 
 
-def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False, inZ=False):
+def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False, inZ=False, rippleFilt=False):
     from skimage.registration import phase_cross_correlation
+    
+    if rippleFilt:
+        refImage = refFilterRipple(refImage)
 
     if len(refImage.shape) == 3:
         if not inZ:
@@ -483,3 +486,21 @@ def motionCorrection(stack, shift):
             if (i+1)%(int(stack['volumes [s]'].size/10)) == 0: print(".", end = " ")
             
     return stackMC
+
+def notchFilt1dRipple(img, rippleW0=0.1326, Q=0.75):
+    
+    import scipy as sp
+    b, a = sp.signal.iirnotch(rippleW0, Q)
+    
+    filtImg = img.copy()
+    
+    for line in range(img.shape[1]):
+        filtImg[:,line] = sp.signal.filtfilt(b, a, img[:,line])
+        
+    return filtImg
+
+def refFilterRipple(refVol, **kwrds):
+    filtRef = refVol.copy()
+    for plane in range(refVol.shape[0]):
+        filtRef[plane,:,:] = notchFilt1dRipple(refVol[plane,:,:], **kwrds)
+    return filtRef
