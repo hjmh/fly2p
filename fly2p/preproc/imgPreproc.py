@@ -163,11 +163,12 @@ def refStack2xarray(stack, basicMetadat, data4D = True):
 def computeDFF(stack,
                order = 3,
                window = 7,
-               baseLinePercent = 10,
+               gaussian_sigma = [0,2,2],
+               baseline_percent = 10,
                offset = 0.0001,
                subtract = False,
                background_mask = None,
-               baselineLowestMean = False):
+               baseline_lowest_mean = False):
     #if subtract == True and a background_mask is provided, ROI based subtraction is assumed
 
     dffStack = np.zeros((stack.shape))
@@ -175,7 +176,7 @@ def computeDFF(stack,
     if len(stack.shape) == 3:
         print('processing 3d stack')
         stackF0 = np.zeros((stack["xpix [µm]"].size,stack["ypix [µm]"].size))
-        filtStack = gaussian_filter(stack, sigma=[0,2,2])
+        filtStack = gaussian_filter(stack, sigma=gaussian_sigma)
 
         #background estimation
         if subtract:
@@ -183,12 +184,12 @@ def computeDFF(stack,
                 filtStack = xr.apply_ufunc(roi_subtract,filtStack,
                                            kwargs={"background_mask":background_mask})
             else:
-                filtStack = xr.apply_ufunc(roll_ball,filtStack)
+                print('please provide a background mask')
 
         filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
 
         # Estimate baseline
-        if baselineLowestMean:
+        if baseline_lowest_mean:
             # TODO: replace with masked asarray
             # data = np.random.randint(0, 255, (100,100,100))
             # thr = np.percentile(data, 10)
@@ -196,9 +197,9 @@ def computeDFF(stack,
             # result = masked.mean(axis=0)
             for x in range(stack["xpix [µm]"].size):
                 for y in range(stack["ypix [µm]"].size):
-                    stackF0[x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseLinePercent, axis=0),x,y].mean()
+                    stackF0[x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseline_percent, axis=0),x,y].mean()
         else:
-            stackF0 = np.percentile(filtF, baseLinePercent, axis=0) + offset
+            stackF0 = np.percentile(filtF, baseline_percent, axis=0) + offset
         stackF0[np.where(stackF0 == 0)[0]] += offset
 
         # Compute dF/F_0 = (F_raw - F_0)/F_0
@@ -215,12 +216,12 @@ def computeDFF(stack,
             filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
 
             # Estimate baseline
-            if baselineLowestMean:
+            if baseline_lowest_mean:
                 for x in range(stack["xpix [µm]"].size):
                     for y in range(stack["ypix [µm]"].size):
-                        stackF0[p,x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseLinePercent, axis=0),x,y].mean()
+                        stackF0[p,x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseline_percent, axis=0),x,y].mean()
             else:
-                stackF0[p,:,:] = np.percentile(filtF, baseLinePercent, axis=0) + offset
+                stackF0[p,:,:] = np.percentile(filtF, baseline_percent, axis=0) + offset
             stackF0[p,np.where(stackF0[p,:,:] == 0)[0]] += offset
 
             # Compute dF/F_0 = (F_raw - F_0)/F_0
@@ -230,7 +231,7 @@ def computeDFF(stack,
 
 
 ### functions for background subtraction
-# Method 1: Background is manually drawn
+# Background is manually drawn
 def roi_subtract(stack, background_mask, order = 3,window = 7):
     T = stack.shape[0]
 
@@ -244,28 +245,6 @@ def roi_subtract(stack, background_mask, order = 3,window = 7):
 
     #subtract
     filt = np.array([stack[t,:,:]-back_F[t] for t in range(T)])
-
-    #range should be same as before subtraction and convert to integer values
-    filt = np.round(((filt-filt.min())/
-                     (filt.max()-filt.min())*(stack.max()-stack.min()))+stack.min())
-
-    return filt
-
-# Method 2: Rolling ball subtraction
-def roll_ball(stack,radius=0.15):
-    #slower than ROI based subtraction
-
-    r = stack.shape[1]*radius
-    R = r/np.max(stack) #normalised radius
-
-    #larger radius fraction implies less artefacts but slower processing
-    ker = restoration.ellipsoid_kernel((1, 2*r, 2*r), 2*R)
-
-    #estimate background for each static image
-    background = restoration.rolling_ball(stack,kernel=ker)
-
-    #subtract
-    filt = stack-background
 
     #range should be same as before subtraction and convert to integer values
     filt = np.round(((filt-filt.min())/
