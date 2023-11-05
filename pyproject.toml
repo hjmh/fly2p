@@ -25,6 +25,12 @@ tiffile = "^2018.10.18"
 typing-extensions = "4.8.0"
 pyyaml = ">=6.0.1"
 vispy = ">=0.13.0"
+ipywidgets = "8.1.1"
+zarr = "^2.16.1"
+vizarr = "^0.0.1"
+anywidget = "0.4.2"
+imjoy = "^0.11.20"
+xpublish = "0.3.0"
 
 [tool.poetry.dev-dependencies]
 pandas = "^1.2.0"
