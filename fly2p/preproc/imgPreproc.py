@@ -163,11 +163,11 @@ def refStack2xarray(stack, basicMetadat, data4D = True):
 def computeDFF(stack,
                order = 3,
                window = 7,
-               gaussian_sigma = [0,2,2],
                baseline_percent = 10,
                offset = 0.0001,
                subtract = False,
                background_mask = None,
+               gaussian_sigma = [0,2,2],
                baseline_lowest_mean = False):
     #if subtract == True and a background_mask is provided, ROI based subtraction is assumed
 
@@ -178,7 +178,7 @@ def computeDFF(stack,
         stackF0 = np.zeros((stack["xpix [µm]"].size,stack["ypix [µm]"].size))
         filtStack = gaussian_filter(stack, sigma=gaussian_sigma)
 
-        #background estimation
+        #background subtraction
         if subtract:
             if background_mask is not None:
                 filtStack = xr.apply_ufunc(roi_subtract,filtStack,
@@ -222,6 +222,7 @@ def computeDFF(stack,
                         stackF0[p,x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseline_percent, axis=0),x,y].mean()
             else:
                 stackF0[p,:,:] = np.percentile(filtF, baseline_percent, axis=0) + offset
+                
             stackF0[p,np.where(stackF0[p,:,:] == 0)[0]] += offset
 
             # Compute dF/F_0 = (F_raw - F_0)/F_0
