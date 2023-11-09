@@ -272,10 +272,9 @@ def genReference(imgStack, numRefImg, v1, v2, maxProject=False):
 def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False, inZ=False, rippleFilt=False):
     from skimage.registration import phase_cross_correlation
     
-    if rippleFilt:
-        refImage = refFilterRipple(refImage)
-
     if len(refImage.shape) == 3:
+        if rippleFilt:
+            refImage = refFilterRipple(refImage)
         if not inZ:
             print('perform motion correction on a volume plane-by-plane')
             refImgFilt = refImage.copy()
