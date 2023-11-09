@@ -92,8 +92,8 @@ def saveXArray(saveDir, saveName, fileName, myArray):
     myArray.to_netcdf(sep.join([savepath,fileName+'.nc']), mode='w')
     return savepath
 
-def saveRoiData(roiMask, roiDFF, savepath, saveName = 'roiDFF.csv'):
-    np.save(sep.join([savepath, 'img','roiMask']),roiMask)
+def saveRoiData(roiMask, roiDFF, savepath, saveName = 'roiDFF.csv',append=''):
+    np.save(sep.join([savepath, 'img','roiMask'+append]),roiMask)
     roiDFF.to_csv(sep.join([savepath,'img', saveName]))
     return savepath
 
