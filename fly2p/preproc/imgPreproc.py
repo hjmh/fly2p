@@ -380,10 +380,12 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
                 
         else:
             fig, ax = plt.subplots(1,1,figsize=(15,5))
-            ax.plot(shift[0,:])
-            ax.plot(shift[1,:])
+            axlab = ['x','y']
+            for i in range(len(axlab)):
+                ax.plot(shift[i,:])
             ax.set_xlabel('frames')
-            ax.set_ylabel('image shift')
+            ax.set_ylabel('image shift [px]')
+            ax.legend(axlab)
 
     if doFilter:
         if len(refImage.shape) == 3:
