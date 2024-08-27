@@ -169,6 +169,7 @@ def computeDFF(stack,
                subtract = False,
                background_mask = None,
                gaussian_sigma = [0,2,2],
+               showSubtractFig = False,
                baseline_lowest_mean = False):
     #if subtract == True and a background_mask is provided, ROI based subtraction is assumed
 
@@ -214,21 +215,31 @@ def computeDFF(stack,
         stackF0 = np.zeros((stack["planes [µm]"].size, stack["xpix [µm]"].size,
                             stack["ypix [µm]"].size))
 
+        if subtract & showSubtractFig:
+            fig, ax = plt.subplots(1,2,figsize = (10,1.5))
+            paletteR = plt.cm.Reds(np.linspace(0, 1, stack["planes [µm]"].size))
+            paletteB = plt.cm.Greys(np.linspace(0, 1, stack["planes [µm]"].size))
+
         for p in range(stack["planes [µm]"].size):
             filtStack = gaussian_filter(stack[{'planes [µm]': p}].squeeze(), sigma=[0,2,2])
             
             #background subtraction
             if subtract:
                 if len(background_mask.shape) == 3:
-                    filtStack = xr.apply_ufunc(roi_subtract,filtStack,
+                    filtStackSub = xr.apply_ufunc(roi_subtract,filtStack,
                                                kwargs={"background_mask":background_mask[p,:,:]})
+                if showSubtractFig:
+                    fig, ax = subtract_fig(fig, ax, [filtStack, filtStackSub], colors=[paletteR[p], paletteB[p]])
                 else:
                     print('please provide a background mask')
+            
+            else: 
+                filtStackSub = filtStack
 
             if savgol:
-                filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
+                filtF = savgol_filter(filtStackSub.astype('float'), window, order, axis=0)
             else:
-                filtF = filtStack.astype('float')
+                filtF = filtStackSub.astype('float')
 
             # Estimate baseline
             if baseline_lowest_mean:
@@ -267,6 +278,29 @@ def roi_subtract(stack, background_mask, order = 3,window = 7):
                      (filt.max()-filt.min())*(stack.max()-stack.min()))+stack.min())
 
     return filt
+
+def subtract_fig(fig, ax, stacks, colors=['r','b'], randomPoints = 1, min = 150, max=250):
+
+    for i in range(2):
+        if isinstance(stacks[i], xr.DataArray):
+            stacks[i] = stacks[i].values
+
+        flat_array = stacks[i].reshape(stacks[i].shape[0],-1)
+
+        # Pick 10 random indices per time point
+        random_indices = np.random.choice(flat_array.shape[1], size= randomPoints, replace=False)
+
+        # Select the random values using advanced indexing
+        random_values_per_time = flat_array[:, random_indices]
+    
+        ax[i].plot(random_values_per_time,'.',color=colors[i],alpha=0.5,markersize=0.5)
+        ax[i].set_xlabel('volume #')
+        if i==0:
+            ax[i].set_ylabel('raw F')
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+        ax[i].set_ylim(min,max)
+    return fig, ax
 
 ## MOTION CORRECTION ##
 
