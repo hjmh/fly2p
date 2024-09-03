@@ -10,3 +10,4 @@ fly2p/sample/*.*
 fly2p/sample/img/*.*
 *.pdf
 *.pyc
+*.tif
