@@ -170,7 +170,7 @@ def computeDFF(stack,
                background_mask = None,
                gaussian_sigma = [0,2,2],
                showSubtractFig = False,
-               baseline_lowest_mean = False):
+               baseline_lowest_mean = False, **showSubtractFigParams):
     #if subtract == True and a background_mask is provided, ROI based subtraction is assumed
 
     dffStack = np.zeros((stack.shape))
@@ -228,8 +228,8 @@ def computeDFF(stack,
                 if len(background_mask.shape) == 3:
                     filtStackSub = xr.apply_ufunc(roi_subtract,filtStack,
                                                kwargs={"background_mask":background_mask[p,:,:]})
-                if showSubtractFig:
-                    fig, ax = subtract_fig(fig, ax, [filtStack, filtStackSub], colors=[paletteR[p], paletteB[p]])
+                    if showSubtractFig:
+                        fig, ax = subtract_fig(fig, ax, [filtStack, filtStackSub], colors=[paletteR[p], paletteB[p]], **showSubtractFigParams)
                 else:
                     print('please provide a background mask')
             
@@ -279,7 +279,7 @@ def roi_subtract(stack, background_mask, order = 3,window = 7):
 
     return filt
 
-def subtract_fig(fig, ax, stacks, colors=['r','b'], randomPoints = 1, min = 150, max=250):
+def subtract_fig(fig, ax, stacks, colors=['r','b'], randomPoints = 1, ylims = [150, 250]):
 
     for i in range(2):
         if isinstance(stacks[i], xr.DataArray):
@@ -299,7 +299,7 @@ def subtract_fig(fig, ax, stacks, colors=['r','b'], randomPoints = 1, min = 150,
             ax[i].set_ylabel('raw F')
         ax[i].spines['top'].set_visible(False)
         ax[i].spines['right'].set_visible(False)
-        ax[i].set_ylim(min,max)
+        ax[i].set_ylim(ylims[0],ylims[1])
     return fig, ax
 
 ## MOTION CORRECTION ##
