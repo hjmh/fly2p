@@ -228,8 +228,8 @@ def computeDFF(stack,
                 if len(background_mask.shape) == 3:
                     filtStackSub = xr.apply_ufunc(roi_subtract,filtStack,
                                                kwargs={"background_mask":background_mask[p,:,:]})
-                if showSubtractFig:
-                    fig, ax = subtract_fig(fig, ax, [filtStack, filtStackSub], colors=[paletteR[p], paletteB[p]])
+                    if showSubtractFig:
+                        fig, ax = subtract_fig(fig, ax, [filtStack, filtStackSub], colors=[paletteR[p], paletteB[p]])
                 else:
                     print('please provide a background mask')
             
