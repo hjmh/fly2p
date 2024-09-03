@@ -92,8 +92,8 @@ def saveXArray(saveDir, saveName, fileName, myArray):
     myArray.to_netcdf(sep.join([savepath,fileName+'.nc']), mode='w')
     return savepath
 
-def saveRoiData(roiMask, roiDFF, savepath, saveName = 'roiDFF.csv'):
-    np.save(sep.join([savepath, 'img','roiMask']),roiMask)
+def saveRoiData(roiMask, roiDFF, savepath, saveName = 'roiDFF.csv',append=''):
+    np.save(sep.join([savepath, 'img','roiMask'+append]),roiMask)
     roiDFF.to_csv(sep.join([savepath,'img', saveName]))
     return savepath
 
@@ -161,13 +161,15 @@ def refStack2xarray(stack, basicMetadat, data4D = True):
 
 ## DFF ##
 def computeDFF(stack,
+               savgol=False,
                order = 3,
                window = 7,
-               gaussian_sigma = [0,2,2],
                baseline_percent = 10,
                offset = 0.0001,
                subtract = False,
                background_mask = None,
+               gaussian_sigma = [0,2,2],
+               showSubtractFig = False,
                baseline_lowest_mean = False):
     #if subtract == True and a background_mask is provided, ROI based subtraction is assumed
 
@@ -178,15 +180,18 @@ def computeDFF(stack,
         stackF0 = np.zeros((stack["xpix [µm]"].size,stack["ypix [µm]"].size))
         filtStack = gaussian_filter(stack, sigma=gaussian_sigma)
 
-        #background estimation
+        #background subtraction
         if subtract:
             if background_mask is not None:
                 filtStack = xr.apply_ufunc(roi_subtract,filtStack,
                                            kwargs={"background_mask":background_mask})
             else:
                 print('please provide a background mask')
-
-        filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
+        
+        if savgol:
+            filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
+        else:
+            filtF = filtStack.astype('float')
 
         # Estimate baseline
         if baseline_lowest_mean:
@@ -210,10 +215,31 @@ def computeDFF(stack,
         stackF0 = np.zeros((stack["planes [µm]"].size, stack["xpix [µm]"].size,
                             stack["ypix [µm]"].size))
 
+        if subtract & showSubtractFig:
+            fig, ax = plt.subplots(1,2,figsize = (10,1.5))
+            paletteR = plt.cm.Reds(np.linspace(0, 1, stack["planes [µm]"].size))
+            paletteB = plt.cm.Greys(np.linspace(0, 1, stack["planes [µm]"].size))
+
         for p in range(stack["planes [µm]"].size):
             filtStack = gaussian_filter(stack[{'planes [µm]': p}].squeeze(), sigma=[0,2,2])
+            
+            #background subtraction
+            if subtract:
+                if len(background_mask.shape) == 3:
+                    filtStackSub = xr.apply_ufunc(roi_subtract,filtStack,
+                                               kwargs={"background_mask":background_mask[p,:,:]})
+                if showSubtractFig:
+                    fig, ax = subtract_fig(fig, ax, [filtStack, filtStackSub], colors=[paletteR[p], paletteB[p]])
+                else:
+                    print('please provide a background mask')
+            
+            else: 
+                filtStackSub = filtStack
 
-            filtF = savgol_filter(filtStack.astype('float'), window, order, axis=0)
+            if savgol:
+                filtF = savgol_filter(filtStackSub.astype('float'), window, order, axis=0)
+            else:
+                filtF = filtStackSub.astype('float')
 
             # Estimate baseline
             if baseline_lowest_mean:
@@ -222,6 +248,7 @@ def computeDFF(stack,
                         stackF0[p,x,y] = filtF[filtF[:,x,y] < np.percentile(filtF[:,x,y], baseline_percent, axis=0),x,y].mean()
             else:
                 stackF0[p,:,:] = np.percentile(filtF, baseline_percent, axis=0) + offset
+                
             stackF0[p,np.where(stackF0[p,:,:] == 0)[0]] += offset
 
             # Compute dF/F_0 = (F_raw - F_0)/F_0
@@ -252,25 +279,55 @@ def roi_subtract(stack, background_mask, order = 3,window = 7):
 
     return filt
 
+def subtract_fig(fig, ax, stacks, colors=['r','b'], randomPoints = 1, min = 150, max=250):
+
+    for i in range(2):
+        if isinstance(stacks[i], xr.DataArray):
+            stacks[i] = stacks[i].values
+
+        flat_array = stacks[i].reshape(stacks[i].shape[0],-1)
+
+        # Pick 10 random indices per time point
+        random_indices = np.random.choice(flat_array.shape[1], size= randomPoints, replace=False)
+
+        # Select the random values using advanced indexing
+        random_values_per_time = flat_array[:, random_indices]
+    
+        ax[i].plot(random_values_per_time,'.',color=colors[i],alpha=0.5,markersize=0.5)
+        ax[i].set_xlabel('volume #')
+        if i==0:
+            ax[i].set_ylabel('raw F')
+        ax[i].spines['top'].set_visible(False)
+        ax[i].spines['right'].set_visible(False)
+        ax[i].set_ylim(min,max)
+    return fig, ax
+
 ## MOTION CORRECTION ##
 
-def genReference(imgStack, numRefImg, v1, v2, maxProject=False): 
+def genReference(imgStack, numRefImg, v1, v2, maxProject=False, rippleFilt=False, plane=-1, center_frac=1/100, ref_as_fraction=True): 
     # generate a 2D or 3D reference based on averages a subset of frames from the full time series and optional maxprojection
     
-    t1 = round(imgStack['volumes [s]'].size/v1)
-    t2 = round(imgStack['volumes [s]'].size/v2)
+    if ref_as_fraction:
+        t1 = round(imgStack['volumes [s]'].size/v1)
+        t2 = round(imgStack['volumes [s]'].size/v2)
+    else:
+        t1= v1
+        t2= v2
     
     if maxProject:
         stackMP = np.max(imgStack, axis=1) # max projection over volume
         reference = np.mean(stackMP[ t1 : t1+numRefImg,:,:],axis=0) + np.mean(stackMP[ t2 : t2+numRefImg,:,:],axis=0)
     else:
         reference = np.mean(imgStack[ t1 : t1+numRefImg,:,:,:],axis=0) + np.mean(imgStack[ t2 : t2+numRefImg,:,:,:],axis=0)
+        if rippleFilt:
+            reference = notchFilter2d(reference, plane=plane, center_frac=center_frac)
+
     return reference
 
 
-def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False, inZ=False):
+def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False, inZ=False, mask=None, stdFactorZ=None):
     from skimage.registration import phase_cross_correlation
-
+    
     if len(refImage.shape) == 3:
         if not inZ:
             print('perform motion correction on a volume plane-by-plane')
@@ -313,7 +370,7 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
 
                     # compute shift
                     shift[:,p,i], error[p,i], diffphase[p,i] = phase_cross_correlation(refImgFilt[p,:,:].data, shifImgFilt,
-                                                                                 upsample_factor = upsampleFactor, normalization=None)
+                                                                                 upsample_factor = upsampleFactor, normalization=None, reference_mask=mask)
             
             #computing x-y-z shift for the entire volume
             else:
@@ -322,7 +379,7 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
                 
                 
                  #compute shift
-                shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, stack[i,:,:,:], upsample_factor = upsampleFactor, normalization=None)
+                shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, stack[i,:,:,:], upsample_factor = upsampleFactor, normalization=None, reference_mask=mask)
                 
         else:
             shifImg = stack[i,:,:]
@@ -330,7 +387,7 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
 
             # compute shift
             shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, shifImgFilt,
-                                                                         upsample_factor = upsampleFactor, normalization=None)
+                                                                         upsample_factor = upsampleFactor, normalization=None, reference_mask=mask)
         
         #progress report
         if (i+1)%(int(stack['volumes [s]'].size/10)) == 0: 
@@ -357,10 +414,12 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
                 
         else:
             fig, ax = plt.subplots(1,1,figsize=(15,5))
-            ax.plot(shift[0,:])
-            ax.plot(shift[1,:])
+            axlab = ['x','y']
+            for i in range(len(axlab)):
+                ax.plot(shift[i,:])
             ax.set_xlabel('frames')
-            ax.set_ylabel('image shift')
+            ax.set_ylabel('image shift [px]')
+            ax.legend(axlab)
 
     if doFilter:
         if len(refImage.shape) == 3:
@@ -370,8 +429,8 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
                 shiftFilt_x_interp = shiftFilt_x
                 shiftFilt_y_interp = shiftFilt_y
                 for p in range(stack['planes [µm]'].size):
-                    shiftFilt_x[p,abs(shiftFilt_x[p,:]) > stdFactor*np.std(shiftFilt_x.flatten())] = np.nan
-                    shiftFilt_y[p,abs(shiftFilt_y[p,:]) > stdFactor*np.std(shiftFilt_y.flatten())] = np.nan
+                    shiftFilt_x[p,abs(shiftFilt_x[p,:]-np.mean(shiftFilt_x[p,:])) > stdFactor*np.std(shiftFilt_x.flatten())] = np.nan
+                    shiftFilt_y[p,abs(shiftFilt_y[p,:]-np.mean(shiftFilt_y[p,:])) > stdFactor*np.std(shiftFilt_y.flatten())] = np.nan
 
                     allT = np.arange(len(shiftFilt_x[p,:]))
                     shiftFilt_x_interp[p,:] = np.interp(allT, allT[~np.isnan(shiftFilt_x[p,:])], shiftFilt_x[p,~np.isnan(shiftFilt_x[p,:])])
@@ -387,12 +446,14 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
                 return shift
             else:
                 #inZ is true
+                if stdFactorZ is None: 
+                    stdFactorZ = stdFactor
                 shiftFilt_z = shift[0,:].copy()
                 shiftFilt_x = shift[1,:].copy()
                 shiftFilt_y = shift[2,:].copy()
-                shiftFilt_z[abs(shiftFilt_z) > stdFactor*np.std(shiftFilt_z)] = np.nan
-                shiftFilt_x[abs(shiftFilt_x) > stdFactor*np.std(shiftFilt_x)] = np.nan
-                shiftFilt_y[abs(shiftFilt_y) > stdFactor*np.std(shiftFilt_y)] = np.nan
+                shiftFilt_z[abs(shiftFilt_z-np.mean(shiftFilt_z)) > stdFactorZ*np.std(shiftFilt_z)] = np.nan
+                shiftFilt_x[abs(shiftFilt_x-np.mean(shiftFilt_x)) > stdFactor*np.std(shiftFilt_x)] = np.nan
+                shiftFilt_y[abs(shiftFilt_y-np.mean(shiftFilt_y)) > stdFactor*np.std(shiftFilt_y)] = np.nan
                 
                 allT = np.arange(len(shiftFilt_x))
                 shiftFilt_z_interp = np.interp(allT, allT[~np.isnan(shiftFilt_z)], shiftFilt_z[~np.isnan(shiftFilt_z)])
@@ -462,3 +523,49 @@ def motionCorrection(stack, shift):
             if (i+1)%(int(stack['volumes [s]'].size/10)) == 0: print(".", end = " ")
             
     return stackMC
+
+def notchFilt1dRipple(img, rippleW0=0.1326, Q=0.75):
+    
+    import scipy as sp
+    b, a = sp.signal.iirnotch(rippleW0, Q)
+    
+    filtImg = img.copy()
+    
+    for line in range(img.shape[1]):
+        filtImg[:,line] = sp.signal.filtfilt(b, a, img[:,line])
+        
+    return filtImg
+
+def refFilterRipple(refVol, **kwrds):
+    filtRef = refVol.copy()
+    for plane in range(refVol.shape[0]):
+        filtRef[plane,:,:] = notchFilt1dRipple(refVol[plane,:,:], **kwrds)
+    return filtRef
+
+def computeNotchFilter2d(img,center_frac=1/100):
+    from skimage.draw import disk
+    
+    img_shape = img.shape #get shape
+    f = np.fft.fft2(img) #fourier transform
+    fshift = np.fft.fftshift(f)
+    
+    phase_spectrumR = np.angle(fshift)
+    magnitude_spectrum = 20*np.log(np.abs(fshift))
+    
+    center = np.zeros(img_shape, dtype=np.uint8)
+    rr, cc = disk((int(img_shape[0]/2),int(img_shape[0]/2)), img_shape[0]*center_frac, shape=img_shape)
+    center[rr, cc] = True
+    NotchFilter = (magnitude_spectrum<=(np.median(magnitude_spectrum)+0.5*np.std(magnitude_spectrum))) | center
+    return NotchFilter
+
+def notchFilter2d(refVol, plane=-1, center_frac=1/100):
+    NotchFilter = computeNotchFilter2d(refVol[plane,:,:], center_frac=center_frac)
+    filtVol = refVol.copy()
+    
+    for p in range(refVol.shape[0]):
+        f = np.fft.fftshift(np.fft.fft2(refVol[p,:,:])) 
+        NotchRejectCenter = f * NotchFilter 
+        NotchReject = np.fft.ifftshift(NotchRejectCenter)
+        filtVol[p,:,:] = np.abs(np.fft.ifft2(NotchReject))  # Compute the inverse DFT of the result
+    
+    return filtVol
