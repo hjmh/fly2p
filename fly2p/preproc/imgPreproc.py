@@ -26,9 +26,10 @@ class imagingTimeseries:
     refImage: xr.DataArray # image used for motion correction (MC)
     dffStack: xr.DataArray # image or stack, maximum intensity projection of DFF over time after MC
     F0stack: xr.DataArray # image or stack of F0 (baseline flourescences)
+    rawStack: xr.DataArray # raw image stack
 
     # roi data
-    roitype: str #polygons ("poly") or correlation-based ("corr")?
+    roitype: str #polygons ("poly") or correlation-based ("corr") or manual?
     roiMask: np.ndarray
     roiDFF: pd.DataFrame
 
@@ -48,6 +49,7 @@ class imagingTimeseries:
         self.refImage.to_netcdf(sep.join([savepath,'refImg.nc']), mode='w')
         self.dffStack.to_netcdf(sep.join([savepath,'dffStack.nc']), mode='w')
         self.F0stack.to_netcdf(sep.join([savepath,'F0stack.nc']), mode='w')
+        self.rawStack.to_netcdf(sep.join([savepath,'rawStack.nc']), mode='w')
 
         # save roi data
         np.save(sep.join([savepath,'roiMask']),self.roiMask)
