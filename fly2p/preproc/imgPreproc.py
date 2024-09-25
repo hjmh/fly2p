@@ -149,9 +149,9 @@ def stack2xarray(stack, basicMetadat, data4D = True, clipping = False):
         minval = np.min(imgStack) 
         if minval < 0: imgStack = imgStack - minval
     elif (clipping==True):
-        imgStack[imgStack<0] = 0
+        imgStack = xr.where(imgStack<0,0,imgStack)
     else:
-        print('no +ve conversion applied')
+        print('no +ve conversion applied when converting to xarray')
     return imgStack
 
 ## CONVERT TO XARRAY when no time dimension
