@@ -13,7 +13,10 @@ from dataclasses import dataclass, asdict
 
 from matplotlib import pyplot as plt
 
+################################################################################
 ## DATA CLASS FOR IMAGING DATA
+################################################################################
+
 @dataclass
 class imagingTimeseries:
     # dataclass holding roi-time series data extracted from imaging experiment
@@ -167,7 +170,10 @@ def refStack2xarray(stack, basicMetadat, data4D = True):
         imgStack = xr.DataArray(stack, coords = [xpx, ypx], dims = ['xpix [µm]', 'ypix [µm]'])
     return imgStack
 
-## DFF ##
+################################################################################
+## DFF 
+################################################################################
+
 def computeDFF(stack,
                savgol=False,
                order = 3,
@@ -265,7 +271,7 @@ def computeDFF(stack,
     return np.float32(dffStack), np.float32(stackF0)
 
 
-### functions for background subtraction
+## functions for background subtraction
 # Background is manually drawn
 def roi_subtract(stack, background_mask, order = 3,window = 7):
     T = stack.shape[0]
@@ -310,10 +316,16 @@ def subtract_fig(fig, ax, stacks, colors=['r','b'], randomPoints = 1, ylims = [1
         ax[i].set_ylim(ylims[0],ylims[1])
     return fig, ax
 
-## MOTION CORRECTION ##
+################################################################################
+## MOTION CORRECTION 
+################################################################################
 
 def genReference(imgStack, numRefImg, v1, v2, maxProject=False, rippleFilt=False, plane=-1, center_frac=1/100, ref_as_fraction=True): 
-    # generate a 2D or 3D reference based on averages a subset of frames from the full time series and optional maxprojection
+    ''' 
+    Generate a 2D or 3D reference 
+    * based on averages of a subset of frames from the full time series (v1 to v2)
+    * optional maxprojection
+    '''
     
     if ref_as_fraction:
         t1 = round(imgStack['volumes [s]'].size/v1)
@@ -333,9 +345,20 @@ def genReference(imgStack, numRefImg, v1, v2, maxProject=False, rippleFilt=False
     return reference
 
 
-def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False, inZ=False, mask=None, stdFactorZ=None):
+def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter = False, stdFactor = 2, showShiftFig = False, inZ=False, refmask=None, movmask=None, stdFactorZ=None):
+    '''
+    Compute the shift of an imaging stack relative to a provided reference image (refImage) for motion correction
+    * operates for 3D (single plane time series, e.g. after max projectiono) and 4D data
+    * for motion correction of a volume: 
+        - option 1: correction per-plane, matching stack planes to corresponding refImage plane (inZ=False) --> good if not too much z-motion
+        - option 2: correction also in z (inZ=True) --> good if a lot of z-motion
+    * optional filtering (based on standard deviation factor) of the computed shift, if too big shifts are introduced due to large changes
+      in calcium activity paired with a suboptimal reference image
+    '''
+
     from skimage.registration import phase_cross_correlation
     
+    # Motion correction for a volume per time point
     if len(refImage.shape) == 3:
         if not inZ:
             print('perform motion correction on a volume plane-by-plane')
@@ -356,18 +379,20 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
             shift = np.zeros([3, stack['volumes [s]'].size])
             error = np.zeros(stack['volumes [s]'].size)
             diffphase = np.zeros(stack['volumes [s]'].size)
+
+    # Motion correction for a plane per time point
     else:
         print('perform motion correction on a single plane/max projection')
         refImgFilt = gaussian_filter(refImage, sigma=sigmaval)
 
-        shift = np.zeros((2, stack['volumes [s]'].size))
-        error = np.zeros(stack['volumes [s]'].size)
-        diffphase = np.zeros(stack['volumes [s]'].size)
+        shift = np.nan*np.ones((2, stack['volumes [s]'].size))
+        error = np.nan*np.ones(stack['volumes [s]'].size)
+        diffphase = np.nan*np.ones(stack['volumes [s]'].size)
 
     # compute for various conditions
     for i in range(stack['volumes [s]'].size):
         
-        #3d reference image
+        #3d reference image (volume)
         if len(refImage.shape) == 3:
             
             #computing x-y shift for each plane seperately
@@ -377,26 +402,34 @@ def computeMotionShift(stack, refImage, upsampleFactor, sigmaval = 2, doFilter =
                     shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
 
                     # compute shift
-                    shift[:,p,i], error[p,i], diffphase[p,i] = phase_cross_correlation(refImgFilt[p,:,:].data, shifImgFilt,
-                                                                                 upsample_factor = upsampleFactor, normalization=None, reference_mask=mask)
+                    if movmask is None: 
+                        shift[:,p,i], error[p,i], diffphase[p,i] = phase_cross_correlation(refImgFilt[p,:,:].data, shifImgFilt, 
+                                                                                           upsample_factor = upsampleFactor, normalization=None)
+                    else:
+                        shift[:,p,i],_ = phase_cross_correlation(refImgFilt[p,:,:].data, shifImgFilt,
+                                                              upsample_factor = upsampleFactor, normalization=None, reference_mask=refmask[p,:,:], moving_mask=movmask[p,:,:])
             
             #computing x-y-z shift for the entire volume
             else:
                 shifImg = stack[i,:,:,:]
                 shifImgFilt = gaussian_filter(shifImg, sigma=max([shifImg.shape[0]/2,2])) #planes above and below will be smoothed
                 
-                
                  #compute shift
-                shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, stack[i,:,:,:], upsample_factor = upsampleFactor, normalization=None, reference_mask=mask)
-                
+                shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, stack[i,:,:,:], upsample_factor = upsampleFactor, normalization=None, moving_mask=movmask)
+        
+        #2d reference image (plane)      
         else:
             shifImg = stack[i,:,:]
             shifImgFilt = gaussian_filter(shifImg, sigma=sigmaval)
 
             # compute shift
-            shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, shifImgFilt,
-                                                                         upsample_factor = upsampleFactor, normalization=None, reference_mask=mask)
-        
+            if movmask is None: 
+                shift[:,i], error[i], diffphase[i] = phase_cross_correlation(refImgFilt, shifImgFilt,
+                                                                            upsample_factor = upsampleFactor, normalization=None, moving_mask=movmask)
+            else:
+                shift[:,i], _ = phase_cross_correlation(refImgFilt, shifImgFilt, upsample_factor = upsampleFactor, 
+                                                           normalization=None, reference_mask=refmask, moving_mask=movmask)    
+            
         #progress report
         if (i+1)%(int(stack['volumes [s]'].size/10)) == 0: 
             print(".", end = " ")
